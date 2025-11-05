@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAHAN Automation Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .task-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        .task-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .task-card.selected {
+            border-color: #1a237e;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+        .task-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .task-card h3 {
+            color: #1a237e;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .task-card p {
+            color: #666;
+            font-size: 13px;
+        }
+        .form-section {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1a237e;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .btn {
+            background: #1a237e;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #283593;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 35, 126, 0.3);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        .status-message.show {
+            display: block;
+        }
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ddd;
+            z-index: 0;
+        }
+        .step {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #666;
+            position: relative;
+            z-index: 1;
+        }
+        .step.active {
+            border-color: #1a237e;
+            background: #1a237e;
+            color: white;
+        }
+        .step.completed {
+            border-color: #4caf50;
+            background: #4caf50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 VAHAN Automation Portal</h1>
+        <p class="subtitle">Select a task and provide details for automated processing</p>
+
+        <div class="progress-steps">
+            <div class="step active" id="step1">1</div>
+            <div class="step" id="step2">2</div>
+            <div class="step" id="step3">3</div>
+        </div>
+
+        <div class="task-grid">
+            <div class="task-card" onclick="selectTask('search')">
+                <div class="task-icon">🔍</div>
+                <h3>Know Your Vehicle</h3>
+                <p>Search vehicle details by registration number</p>
+            </div>
+            <div class="task-card" onclick="selectTask('register')">
+                <div class="task-icon">📋</div>
+                <h3>Vehicle Registration</h3>
+                <p>Register a new vehicle</p>
+            </div>
+            <div class="task-card" onclick="selectTask('transfer')">
+                <div class="task-icon">🔄</div>
+                <h3>Transfer Ownership</h3>
+                <p>Transfer vehicle to new owner</p>
+            </div>
+            <div class="task-card" onclick="selectTask('update')">
+                <div class="task-icon">✏️</div>
+                <h3>Update Contacts</h3>
+                <p>Update contact details</p>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="form-section" id="formSection">
+            <h3 id="formTitle">Task Details</h3>
+            
+            <!-- Authentication (for tasks except search) -->
+            <div id="authSection" style="display: none;">
+                <div class="form-group">
+                    <label>Email Address *</label>
+                    <input type="email" id="email" placeholder="Enter your registered email" required>
+                </div>
+                <div class="form-group">
+                    <label>OTP *</label>
+                    <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" required>
+                </div>
+            </div>
+
+            <!-- Know Your Vehicle Form -->
+            <div id="searchForm" style="display: none;">
+                <div class="form-group">
+                    <label>Vehicle Registration Number *</label>
+                    <input type="text" id="search_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;" required>
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <select id="search_state" required>
+                        <option value="">-- Select State --</option>
+                        <option value="DL">Delhi (DL)</option>
+                        <option value="MH">Maharashtra (MH)</option>
+                        <option value="KA">Karnataka (KA)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Vehicle Registration Form -->
+            <div id="registerForm" style="display: none;">
+                <h4 style="margin-bottom: 15px; color: #1a237e;">Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Owner Name *</label>
+                        <input type="text" id="reg_ownerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Father's Name *</label>
+                        <input type="text" id="reg_fatherName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="reg_mobile" pattern="[0-9]{10}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="reg_email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="reg_address" rows="3" required></textarea>
+                </div>
+                <h4 style="margin: 20px 0 15px; color: #1a237e;">Vehicle Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Class *</label>
+                        <input type="text" id="reg_class" placeholder="e.g., Motor Car" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Model *</label>
+                        <input type="text" id="reg_model" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fuel Type *</label>
+                        <select id="reg_fuel" required>
+                            <option value="Petrol">Petrol</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="CNG">CNG</option>
+                            <option value="Electric">Electric</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="text" id="reg_color" placeholder="e.g., White">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>RTO State *</label>
+                    <select id="reg_rto" required>
+                        <option value="">-- Select State --</option>
+                        <option value="DL">Delhi (DL)</option>
+                        <option value="MH">Maharashtra (MH)</option>
+                        <option value="KA">Karnataka (KA)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Transfer Ownership Form -->
+            <div id="transferForm" style="display: none;">
+                <div class="form-group">
+                    <label>Vehicle Registration Number *</label>
+                    <input type="text" id="trans_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;" required>
+                </div>
+                <h4 style="margin: 20px 0 15px; color: #1a237e;">New Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" id="trans_newOwner" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Father's Name *</label>
+                        <input type="text" id="trans_newFather" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mobile *</label>
+                        <input type="tel" id="trans_newMobile" pattern="[0-9]{10}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="trans_newEmail" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="trans_newAddress" rows="3" required></textarea>
+                </div>
+            </div>
+
+            <!-- Update Contacts Form -->
+            <div id="updateForm" style="display: none;">
+                <div class="form-group">
+                    <label>Vehicle Registration Number *</label>
+                    <input type="text" id="upd_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;" required>
+                </div>
+                <h4 style="margin: 20px 0 15px; color: #1a237e;">New Contact Details</h4>
+                <div class="form-group">
+                    <label>New Address *</label>
+                    <textarea id="upd_newAddress" rows="3" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>New Mobile *</label>
+                        <input type="tel" id="upd_newMobile" pattern="[0-9]{10}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Email</label>
+                        <input type="email" id="upd_newEmail">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="executeTask()" id="submitBtn">Execute Task</button>
+            
+            <div class="status-message" id="statusMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTask = null;
+
+        function selectTask(task) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card
+            event.currentTarget.classList.add('selected');
+            
+            selectedTask = task;
+            
+            // Show form section
+            const formSection = document.getElementById('formSection');
+            formSection.classList.add('active');
+            
+            // Update step 2
+            document.getElementById('step2').classList.add('active');
+            
+            // Hide all forms
+            document.getElementById('searchForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('transferForm').style.display = 'none';
+            document.getElementById('updateForm').style.display = 'none';
+            document.getElementById('authSection').style.display = 'none';
+            
+            // Set form title
+            const titles = {
+                search: 'Know Your Vehicle Details',
+                register: 'New Vehicle Registration',
+                transfer: 'Transfer of Ownership',
+                update: 'Update Contact Details'
+            };
+            document.getElementById('formTitle').textContent = titles[task];
+            
+            // Show appropriate form
+            if (task === 'search') {
+                document.getElementById('searchForm').style.display = 'block';
+            } else {
+                document.getElementById('authSection').style.display = 'block';
+                if (task === 'register') {
+                    document.getElementById('registerForm').style.display = 'block';
+                } else if (task === 'transfer') {
+                    document.getElementById('transferForm').style.display = 'block';
+                } else if (task === 'update') {
+                    document.getElementById('updateForm').style.display = 'block';
+                }
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message show ' + type;
+        }
+
+        async function executeTask() {
+            if (!selectedTask) {
+                showStatus('Please select a task first!', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            // Update step 3
+            document.getElementById('step3').classList.add('active');
+            
+            showStatus('Executing automation task... This may take a minute.', 'info');
+
+            // Collect form data based on task
+            let taskData = { taskType: selectedTask };
+
+            if (selectedTask !== 'search') {
+                taskData.email = document.getElementById('email').value;
+                taskData.otp = document.getElementById('otp').value;
+            }
+
+            if (selectedTask === 'search') {
+                taskData.regNo = document.getElementById('search_regNo').value;
+                taskData.state = document.getElementById('search_state').value;
+            } else if (selectedTask === 'register') {
+                taskData.ownerName = document.getElementById('reg_ownerName').value;
+                taskData.fatherName = document.getElementById('reg_fatherName').value;
+                taskData.mobile = document.getElementById('reg_mobile').value;
+                taskData.email = document.getElementById('reg_email').value;
+                taskData.address = document.getElementById('reg_address').value;
+                taskData.class = document.getElementById('reg_class').value;
+                taskData.model = document.getElementById('reg_model').value;
+                taskData.fuel = document.getElementById('reg_fuel').value;
+                taskData.color = document.getElementById('reg_color').value;
+                taskData.rto = document.getElementById('reg_rto').value;
+            } else if (selectedTask === 'transfer') {
+                taskData.regNo = document.getElementById('trans_regNo').value;
+                taskData.newOwnerName = document.getElementById('trans_newOwner').value;
+                taskData.newOwnerFather = document.getElementById('trans_newFather').value;
+                taskData.newOwnerMobile = document.getElementById('trans_newMobile').value;
+                taskData.newOwnerEmail = document.getElementById('trans_newEmail').value;
+                taskData.newOwnerAddress = document.getElementById('trans_newAddress').value;
+            } else if (selectedTask === 'update') {
+                taskData.regNo = document.getElementById('upd_regNo').value;
+                taskData.newAddress = document.getElementById('upd_newAddress').value;
+                taskData.newMobile = document.getElementById('upd_newMobile').value;
+                taskData.newEmail = document.getElementById('upd_newEmail').value;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/api/automation/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus('✅ ' + result.message, 'success');
+                    document.getElementById('step3').classList.add('completed');
+                    
+                    // Show result details
+                    if (result.data) {
+                        setTimeout(() => {
+                            showStatus('✅ Task completed successfully!\n\nDetails: ' + JSON.stringify(result.data, null, 2), 'success');
+                        }, 500);
+                    }
+                } else {
+                    showStatus('❌ Error: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Network error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Execute Task';
+            }
+        }
+    </script>
+</body>
+</html>

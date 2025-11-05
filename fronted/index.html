@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAHAN 4.0 | National Vehicle Register - Ministry of Road Transport & Highways</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="gov-bar"></div>
+
+    <header class="header">
+        <div class="header-top">
+            <div class="header-top-content">
+                <span>Skip to main content | Screen Reader Access</span>
+                <span>Last Updated: Nov 05, 2025 | Visitors: 12,45,678</span>
+            </div>
+        </div>
+        <div class="header-main">
+            <div class="logo-section">
+                <div class="emblem">🦁</div>
+                <div class="title">
+                    <h1>VAHAN 4.0</h1>
+                    <p>Ministry of Road Transport & Highways, Government of India</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-outline" onclick="toggleLanguage()">हिंदी</button>
+                <button class="btn btn-primary" onclick="showLoginModal()" id="loginBtn">Login / Register</button>
+                <button class="btn btn-primary" onclick="logout()" id="logoutBtn" style="display:none;">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <ul>
+                <li><a href="#" onclick="showSection('home')">Home</a></li>
+                <li><a href="#" onclick="showSection('services')">e-Services</a></li>
+                <li><a href="#" onclick="showSection('search')">Know Your Vehicle</a></li>
+                <li><a href="#" onclick="showDashboard()">My Dashboard</a></li>
+                <li><a href="#" onclick="showSection('reports')">Reports</a></li>
+                <li><a href="#">FAQs</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="banner">
+        <h2>National Vehicle Register (VAHAN NR e-Services)</h2>
+        <p>Centralized Database of All Registered Vehicles in India | Digital India Initiative</p>
+    </div>
+
+    <div class="container">
+        
+        <div class="card" id="searchCard">
+            <h3>🔍 Search Vehicle Details</h3>
+            <form id="vehicleSearchForm" onsubmit="searchVehicle(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Registration Number *</label>
+                        <input type="text" id="regNumber" placeholder="e.g., DL01AB1234" required maxlength="15" style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>Select State *</label>
+                        <select id="stateSelect" required>
+                            <option value="">-- Select State --</option>
+                            <option value="DL">Delhi (DL)</option>
+                            <option value="MH">Maharashtra (MH)</option>
+                            <option value="KA">Karnataka (KA)</option>
+                            <option value="UP">Uttar Pradesh (UP)</option>
+                            <option value="AP">Andhra Pradesh (AP)</option>
+                            <option value="TN">Tamil Nadu (TN)</option>
+                            <option value="GJ">Gujarat (GJ)</option>
+                            <option value="RJ">Rajasthan (RJ)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Enter Captcha Code *</label>
+                    <div class="captcha-container">
+                        <div class="captcha-display" id="captchaDisplay"></div>
+                        <input type="text" id="captchaInput" placeholder="Enter captcha" required maxlength="6">
+                        <button type="button" class="btn btn-secondary" onclick="generateCaptcha()">🔄</button>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">🔍 Search Vehicle</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card result-card" id="resultCard" style="display:none;">
+            <div class="result-header">
+                <h3>📋 Vehicle Details</h3>
+                <div>
+                    <button class="btn btn-primary" onclick="showRCModal()">📄 View RC</button>
+                    <button class="btn btn-secondary" onclick="printDetails()">🖨️ Print</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('basic')">Basic Details</button>
+                <button class="tab-btn" onclick="switchTab('insurance')">Insurance</button>
+                <button class="tab-btn" onclick="switchTab('fitness')">Fitness & PUC</button>
+                <button class="tab-btn" onclick="switchTab('owner')">Owner Details</button>
+            </div>
+
+            <div id="basicTab" class="tab-content active">
+                <table class="info-table">
+                    <tr><td>Registration Number</td><td id="res_regNo">-</td></tr>
+                    <tr><td>Registration Date</td><td id="res_regDate">-</td></tr>
+                    <tr><td>Registering Authority</td><td id="res_rto">-</td></tr>
+                    <tr><td>Vehicle Class</td><td id="res_class">-</td></tr>
+                    <tr><td>Fuel Type</td><td id="res_fuel">-</td></tr>
+                    <tr><td>Maker / Model</td><td id="res_model">-</td></tr>
+                    <tr><td>Manufacturing Year</td><td id="res_year">-</td></tr>
+                    <tr><td>Engine Number</td><td id="res_engine">-</td></tr>
+                    <tr><td>Chassis Number</td><td id="res_chassis">-</td></tr>
+                    <tr><td>Color</td><td id="res_color">-</td></tr>
+                    <tr><td>Seating Capacity</td><td id="res_seating">-</td></tr>
+                </table>
+            </div>
+
+            <div id="insuranceTab" class="tab-content">
+                <table class="info-table">
+                    <tr><td>Insurance Company</td><td id="res_insCompany">-</td></tr>
+                    <tr><td>Policy Number</td><td id="res_policyNo">-</td></tr>
+                    <tr><td>Policy Valid From</td><td id="res_insFrom">-</td></tr>
+                    <tr><td>Policy Valid Upto</td><td id="res_insUpto">-</td></tr>
+                    <tr><td>Insurance Status</td><td id="res_insStatus">-</td></tr>
+                </table>
+            </div>
+
+            <div id="fitnessTab" class="tab-content">
+                <table class="info-table">
+                    <tr><td>Fitness Valid Upto</td><td id="res_fitnessUpto">-</td></tr>
+                    <tr><td>Fitness Status</td><td id="res_fitnessStatus">-</td></tr>
+                    <tr><td>PUC Number</td><td id="res_pucNo">-</td></tr>
+                    <tr><td>PUC Valid Upto</td><td id="res_pucUpto">-</td></tr>
+                    <tr><td>PUC Status</td><td id="res_pucStatus">-</td></tr>
+                    <tr><td>Tax Paid Upto</td><td id="res_taxUpto">-</td></tr>
+                </table>
+            </div>
+
+            <div id="ownerTab" class="tab-content">
+                <div class="owner-card">
+                    <div class="owner-header">
+                        <div class="owner-icon">👤</div>
+                        <div class="owner-info-header">
+                            <h4 id="res_ownerName_header">-</h4>
+                            <p id="res_fatherName_header">S/O: -</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-grid">
+                        <div class="contact-item">
+                            <span class="contact-icon">📱</span>
+                            <div>
+                                <label>Mobile Number</label>
+                                <p id="res_mobile_display">-</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">✉️</span>
+                            <div>
+                                <label>Email Address</label>
+                                <p id="res_email_display">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="address-section">
+                        <div class="address-block">
+                            <span class="contact-icon">📍</span>
+                            <div>
+                                <label>Present Address</label>
+                                <p id="res_address_display">-</p>
+                            </div>
+                        </div>
+                        <div class="address-block">
+                            <span class="contact-icon">🏠</span>
+                            <div>
+                                <label>Permanent Address</label>
+                                <p id="res_permAddress_display">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="info-table" style="margin-top: 20px;">
+                        <tr><td>Owner Name</td><td id="res_ownerName">-</td></tr>
+                        <tr><td>Father/Husband Name</td><td id="res_fatherName">-</td></tr>
+                        <tr><td>Mobile Number</td><td id="res_mobile">-</td></tr>
+                        <tr><td>Email</td><td id="res_email">-</td></tr>
+                        <tr><td>Present Address</td><td id="res_address">-</td></tr>
+                        <tr><td>Permanent Address</td><td id="res_permAddress">-</td></tr>
+                        <tr><td>Financer/Hypothecation</td><td id="res_financer">-</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="showTransferModal()">🔄 Transfer Ownership</button>
+                <button class="btn btn-primary" onclick="showUpdateDetailsModal()">✏️ Update Details</button>
+            </div>
+        </div>
+
+        <div class="services-section" id="servicesSection">
+            <h3>Available e-Services</h3>
+            <div class="services-grid">
+                <div class="service-card" onclick="showNewRegModal()">
+                    <div class="service-icon">📋</div>
+                    <h4>New Vehicle Registration</h4>
+                    <p>Register your new vehicle online and get RC instantly.</p>
+                </div>
+                <div class="service-card" onclick="showTransferModal()">
+                    <div class="service-icon">🔄</div>
+                    <h4>Transfer of Ownership</h4>
+                    <p>Apply for ownership transfer without visiting RTO.</p>
+                </div>
+                <div class="service-card" onclick="showDuplicateRCModal()">
+                    <div class="service-icon">📜</div>
+                    <h4>Duplicate RC</h4>
+                    <p>Apply for duplicate registration certificate.</p>
+                </div>
+                <div class="service-card" onclick="showUpdateDetailsModal()">
+                    <div class="service-icon">🏠</div>
+                    <h4>Update Contact Details</h4>
+                    <p>Update your address, mobile, and email in records.</p>
+                </div>
+                <div class="service-card" onclick="showServiceInfo('Fancy Number')">
+                    <div class="service-icon">🔢</div>
+                    <h4>Fancy Number Booking</h4>
+                    <p>Book your preferred vehicle number.</p>
+                </div>
+                <div class="service-card" onclick="showServiceInfo('Fitness')">
+                    <div class="service-icon">✔</div>
+                    <h4>Fitness Certificate</h4>
+                    <p>Renew fitness for commercial vehicles.</p>
+                </div>
+                <div class="service-card" onclick="showServiceInfo('Hypothecation')">
+                    <div class="service-icon">🏦</div>
+                    <h4>Hypothecation</h4>
+                    <p>Add or terminate loan details.</p>
+                </div>
+                <div class="service-card" onclick="showUploadModal()">
+                    <div class="service-icon">📁</div>
+                    <h4>Upload Documents</h4>
+                    <p>Upload RC, insurance, and documents.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section" id="dashboardSection" style="display:none;">
+            <div class="card">
+                <h3>👤 My Dashboard - Welcome, <span id="dashUserName">User</span></h3>
+                <div class="dashboard-tabs">
+                    <button class="dash-tab-btn active" onclick="switchDashTab('vehicles')">My Vehicles</button>
+                    <button class="dash-tab-btn" onclick="switchDashTab('applications')">Applications</button>
+                    <button class="dash-tab-btn" onclick="switchDashTab('documents')">My Documents</button>
+                    <button class="dash-tab-btn" onclick="switchDashTab('payments')">Payments</button>
+                </div>
+                <div id="dashboardContent" class="dashboard-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login / Register</h3>
+                <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleSendOTP(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" required placeholder="Enter your email">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="sendOtpBtn">Send OTP</button>
+                <p style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
+                    We'll send a one-time password to your email.
+                </p>
+            </form>
+            
+            <form id="otpForm" onsubmit="handleVerifyOTP(event)" style="display:none;">
+                <div class="form-group">
+                    <label>Enter OTP</label>
+                    <input type="text" id="loginOTP" required placeholder="Enter 6-digit OTP" maxlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="verifyOtpBtn">Login</button>
+                <p style="text-align: center; margin-top: 10px; font-size: 12px;">
+                    <a href="#" onclick="showLoginModal()">Use a different email</a>
+                </p>
+            </form>
+
+        </div>
+    </div>
+
+    <div class="modal" id="transferModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Transfer of Ownership Application</h3>
+                <button class="close-btn" onclick="closeModal('transferModal')">&times;</button>
+            </div>
+            <form id="transferForm" onsubmit="submitTransfer(event)">
+                <h4>Current Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="trans_currOwner" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile</label>
+                        <input type="tel" id="trans_currMobile" required readonly>
+                    </div>
+                </div>
+                <h4 style="margin-top: 20px;">New Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" id="trans_newOwner" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Father/Husband Name *</label>
+                        <input type="text" id="trans_newFather" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="trans_newMobile" required pattern="[0-9]{10}">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="trans_newEmail">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="trans_newAddress" rows="3" required class="full-width-textarea"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sale Amount (₹)</label>
+                        <input type="number" id="trans_amount" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Transfer Date</label>
+                        <input type="date" id="trans_date" required>
+                    </div>
+                </div>
+
+                <div class="required-docs">
+                    <h4>Required Documents (Self-Attested)</h4>
+                    <ul>
+                        <li><label><input type="checkbox" required> Form 29 & 30 (Sale Certificate)</label></li>
+                        <li><label><input type="checkbox" required> Original RC (To be submitted at RTO)</label></li>
+                        <li><label><input type="checkbox" required> Valid Insurance Copy</label></li>
+                        <li><label><input type="checkbox" required> New Owner's Address Proof (Aadhaar, etc.)</label></li>
+                    </ul>
+                </div>
+
+                <div class="fee-details">
+                    <strong>Application Fee:</strong> ₹500
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('transferModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="newRegModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>New Vehicle Registration</h3>
+                <button class="close-btn" onclick="closeModal('newRegModal')">&times;</button>
+            </div>
+            <form id="newRegForm" onsubmit="submitNewReg(event)">
+                <h4>Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Owner Name *</label>
+                        <input type="text" id="newReg_ownerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Father/Husband Name *</label>
+                        <input type="text" id="newReg_fatherName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="newReg_mobile" required pattern="[0-9]{10}">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="newReg_email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address *</label>
+                    <textarea id="newReg_address" rows="3" required class="full-width-textarea"></textarea>
+                </div>
+
+                <h4 style="margin-top: 20px;">Vehicle Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Class (e.g., Motor Car)</label>
+                        <input type="text" id="newReg_class" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Maker / Model *</label>
+                        <input type="text" id="newReg_model" required placeholder="e.g., MARUTI SUZUKI SWIFT VXI">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fuel Type</label>
+                        <select id="newReg_fuel">
+                            <option>Petrol</option>
+                            <option>Diesel</option>
+                            <option>CNG</option>
+                            <option>Electric</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label>Color</label>
+                        <input type="text" id="newReg_color" placeholder="e.g., White">
+                    </div>
+                </div>
+                 <div class="form-row">
+                    <div class="form-group">
+                        <label>Ex-Showroom Price (₹) *</label>
+                        <input type="number" id="newReg_amount" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Select RTO / State *</label>
+                        <select id="newReg_rto" required>
+                            <option value="">-- Select State --</option>
+                            <option value="DL">Delhi (DL)</option>
+                            <option value="MH">Maharashtra (MH)</option>
+                            <option value="KA">Karnataka (KA)</option>
+                            <option value="UP">Uttar Pradesh (UP)</option>
+                            <option value="AP">Andhra Pradesh (AP)</option>
+                            <option value="TN">Tamil Nadu (TN)</option>
+                            <option value="GJ">Gujarat (GJ)</option>
+                            <option value="RJ">Rajasthan (RJ)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="required-docs">
+                    <h4>Required Documents (from Dealer)</h4>
+                    <ul>
+                        <li><label><input type="checkbox" required> Form 20 (Application)</label></li>
+                        <li><label><input type="checkbox" required> Form 21 (Sale Certificate)</label></li>
+                        <li><label><input type="checkbox" required> Form 22 (Road Worthiness)</label></li>
+                        <li><label><input type="checkbox" required> Valid Insurance Copy</label></li>
+                        <li><label><input type="checkbox" required> Owner's ID & Address Proof</label></li>
+                    </ul>
+                </div>
+
+                <div class="fee-details">
+                    <strong>Registration Fee (approx.):</strong> ₹1500 + Road Tax
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('newRegModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="duplicateRCModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Apply for Duplicate RC</h3>
+                <button class="close-btn" onclick="closeModal('duplicateRCModal')">&times;</button>
+            </div>
+            <form id="duplicateRCForm" onsubmit="submitDuplicateRC(event)">
+                <h4>Vehicle Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Reg. No *</label>
+                        <input type="text" id="dup_regNo" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Name</label>
+                        <input type="text" id="dup_ownerName" readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Chassis No (Last 5 digits)</label>
+                        <input type="text" id="dup_chassis" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Engine No (Last 5 digits)</label>
+                        <input type="text" id="dup_engine" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Reason for Duplicate RC *</label>
+                    <select id="dup_reason" required>
+                        <option value="">-- Select Reason --</option>
+                        <option>RC Lost</option>
+                        <option>RC Damaged / Mutilated</option>
+                        <option>RC Stolen</option>
+                    </select>
+                </div>
+
+                <div class="required-docs">
+                    <h4>Required Documents</h4>
+                    <ul>
+                        <li><label><input type="checkbox" required> Form 26 (Application)</label></li>
+                        <li><label><input type="checkbox" required> Police FIR (if Lost or Stolen)</label></li>
+                        <li><label><input type="checkbox" required> Valid Insurance Copy</label></li>
+                        <li><label><input type="checkbox" required> Valid PUC Copy</label></li>
+                    </ul>
+                </div>
+
+                <div class="fee-details">
+                    <strong>Application Fee:</strong> ₹300
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('duplicateRCModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="updateDetailsModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Update Contact Details in RC</h3>
+                <button class="close-btn" onclick="closeModal('updateDetailsModal')">&times;</button>
+            </div>
+            <form id="updateDetailsForm" onsubmit="submitUpdateDetails(event)">
+                <h4>Vehicle Details</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle Reg. No *</label>
+                        <input type="text" id="addr_regNo" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Name</label>
+                        <input type="text" id="addr_ownerName" readonly>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 20px;">Current Details</h4>
+                <div class="form-group">
+                    <label>Current Address</label>
+                    <textarea id="addr_currAddress" rows="3" readonly class="full-width-textarea"></textarea>
+                </div>
+
+                <h4 style="margin-top: 20px;">New Details</h4>
+                <div class="form-group">
+                    <label>New Address *</label>
+                    <textarea id="addr_newAddress" rows="3" required class="full-width-textarea"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>New Mobile Number *</label>
+                        <input type="tel" id="addr_newMobile" required pattern="[0-9]{10}">
+                    </div>
+                    <div class="form-group">
+                        <label>New Email</label>
+                        <input type="email" id="addr_newEmail">
+                    </div>
+                </div>
+
+                <div class="required-docs">
+                    <h4>Required Documents</h4>
+                    <ul>
+                        <li><label><input type="checkbox" required> Form 33 (For Address Change)</label></li>
+                        <li><label><input type="checkbox" required> Original RC (for endorsement)</label></li>
+                        <li><label><input type="checkbox" required> New Address Proof (Aadhaar, Passport, etc.)</label></li>
+                        <li><label><input type="checkbox" required> Owner's ID Proof</label></li>
+                    </ul>
+                </div>
+
+                <div class="fee-details">
+                    <strong>Application Fee:</strong> ₹200
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('updateDetailsModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Documents</h3>
+                <button class="close-btn" onclick="closeModal('uploadModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Document Type</label>
+                <select id="docType">
+                    <option>Registration Certificate (RC)</option>
+                    <option>Insurance Policy</option>
+                    <option>Pollution Certificate (PUC)</option>
+                    <option>Fitness Certificate</option>
+                    <option>Aadhar Card</option>
+                    <option>Driving License</option>
+                </select>
+            </div>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(event)" accept=".pdf,.jpg,.jpeg,.png">
+                <p>📁 Click to upload or drag and drop</p>
+                <p style="font-size: 12px; color: #666;">PDF, JPG, PNG (Max 5MB)</p>
+            </div>
+            <div id="uploadedFiles" class="uploaded-files"></div>
+            <button class="btn btn-primary" onclick="saveDocuments()" style="width: 100%; margin-top: 15px;">Save Documents</button>
+        </div>
+    </div>
+
+    <div class="modal" id="rcModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Registration Certificate (RC)</h3>
+                <button class="close-btn" onclick="closeModal('rcModal')">&times;</button>
+            </div>
+            <div class="rc-content">
+                <div id="rcContentOutput">
+                </div>
+            </div>
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeModal('rcModal')">Close</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print RC</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="receiptModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Application Receipt</h3>
+                <button class="close-btn" onclick="closeModal('receiptModal')">&times;</button>
+            </div>
+            <div class="receipt-content">
+                <pre id="receiptContentOutput">
+                </pre>
+            </div>
+             <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeModal('receiptModal')">Close</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#">About Ministry</a></li>
+                    <li><a href="#">RTI Act</a></li>
+                    <li><a href="#">Terms & Conditions</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Sitemap</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Related Portals</h4>
+                <ul>
+                    <li><a href="#">Parivahan Sewa</a></li>
+                    <li><a href="#">Sarathi (DL Services)</a></li>
+                    <li><a href="#">mParivahan App</a></li>
+                    <li><a href="#">e-Challan</a></li>
+                    <li><a href="#">FASTag</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Us</h4>
+                <ul>
+                    <li><a href="#">Helpdesk Support</a></li>
+                    <li><a href="#">Email: support@vahan.gov.in</a></li>
+                    <li><a href="#">Toll Free: 1800-110-321</a></li>
+                    <li><a href="#">Feedback</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Help</h4>
+                <ul>
+                    <li><a href="#">User Manual</a></li>
+                    <li><a href="#">FAQs</a></li>
+                    <li><a href="#">Video Tutorials</a></li>
+                    <li><a href="#">Screen Reader</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Ministry of Road Transport and Highways, Government of India</p>
+            <p>Designed, Developed and Hosted by National Informatics Centre (NIC)</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
