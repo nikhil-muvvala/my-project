@@ -92,26 +92,38 @@
         .status-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .status-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .status-message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .captcha-container {
+            text-align: center;
+            margin: 20px 0;
+        }
         .captcha-image {
-            max-width: 200px;
+            max-width: 300px;
             border: 2px solid #ddd;
             border-radius: 4px;
-            margin: 10px 0;
+            padding: 10px;
+            background: white;
         }
         .result-box {
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 6px;
             margin-top: 15px;
             border-left: 4px solid #4caf50;
         }
-        .result-box h4 { color: #1a237e; margin-bottom: 10px; font-size: 16px; }
-        .result-box pre {
-            background: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            overflow-x: auto;
+        .result-box h4 { color: #1a237e; margin-bottom: 15px; font-size: 16px; }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .result-table td {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .result-table td:first-child {
+            font-weight: 600;
+            color: #666;
+            width: 40%;
         }
         h4 { color: #1a237e; margin: 15px 0 10px; font-size: 15px; }
     </style>
@@ -151,6 +163,46 @@
         let selectedTask = null;
         let sessionData = {};
 
+        // All Indian States and Union Territories
+        const indianStates = [
+            { code: 'AP', name: 'Andhra Pradesh' },
+            { code: 'AR', name: 'Arunachal Pradesh' },
+            { code: 'AS', name: 'Assam' },
+            { code: 'BR', name: 'Bihar' },
+            { code: 'CG', name: 'Chhattisgarh' },
+            { code: 'GA', name: 'Goa' },
+            { code: 'GJ', name: 'Gujarat' },
+            { code: 'HR', name: 'Haryana' },
+            { code: 'HP', name: 'Himachal Pradesh' },
+            { code: 'JK', name: 'Jammu and Kashmir' },
+            { code: 'JH', name: 'Jharkhand' },
+            { code: 'KA', name: 'Karnataka' },
+            { code: 'KL', name: 'Kerala' },
+            { code: 'MP', name: 'Madhya Pradesh' },
+            { code: 'MH', name: 'Maharashtra' },
+            { code: 'MN', name: 'Manipur' },
+            { code: 'ML', name: 'Meghalaya' },
+            { code: 'MZ', name: 'Mizoram' },
+            { code: 'NL', name: 'Nagaland' },
+            { code: 'OD', name: 'Odisha' },
+            { code: 'PB', name: 'Punjab' },
+            { code: 'RJ', name: 'Rajasthan' },
+            { code: 'SK', name: 'Sikkim' },
+            { code: 'TN', name: 'Tamil Nadu' },
+            { code: 'TS', name: 'Telangana' },
+            { code: 'TR', name: 'Tripura' },
+            { code: 'UP', name: 'Uttar Pradesh' },
+            { code: 'UK', name: 'Uttarakhand' },
+            { code: 'WB', name: 'West Bengal' },
+            { code: 'AN', name: 'Andaman and Nicobar' },
+            { code: 'CH', name: 'Chandigarh' },
+            { code: 'DD', name: 'Dadra and Nagar Haveli and Daman and Diu' },
+            { code: 'DL', name: 'Delhi' },
+            { code: 'LA', name: 'Ladakh' },
+            { code: 'LD', name: 'Lakshadweep' },
+            { code: 'PY', name: 'Puducherry' }
+        ];
+
         function selectTask(task) {
             document.querySelectorAll('.task-card').forEach(c => c.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
@@ -161,18 +213,22 @@
             formSection.classList.add('active');
             
             if (task === 'search') {
-                // MODIFIED: Go back to Step 1
                 showSearchStep1();
             } else {
-                showAuthStep1(task);
+                showStatus('This feature is coming soon!', 'info');
             }
         }
 
-        // === SEARCH VEHICLE FLOW (MODIFIED) ===
-        // This is the original Step 1
         function showSearchStep1() {
+            const stateOptions = indianStates.map(state => 
+                `<option value="${state.code}">${state.name} (${state.code})</option>`
+            ).join('');
+
             document.getElementById('formSection').innerHTML = `
                 <h3>🔍 Know Your Vehicle - Step 1</h3>
+                <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                    Enter vehicle registration number and select state
+                </p>
                 <div class="form-group">
                     <label>Vehicle Registration Number *</label>
                     <input type="text" id="search_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;">
@@ -180,21 +236,17 @@
                 <div class="form-group">
                     <label>State *</label>
                     <select id="search_state">
-                        <option value="">-- Select --</option>
-                        <option value="DL">Delhi (DL)</option>
-                        <option value="MH">Maharashtra (MH)</option>
-                        <option value="KA">Karnataka (KA)</option>
-                        <option value="UP">Uttar Pradesh (UP)</option>
+                        <option value="">-- Select State --</option>
+                        ${stateOptions}
                     </select>
                 </div>
-                <button class="btn" onclick="searchStep1()">Get Captcha</button>
+                <button class="btn" onclick="searchStep1()">🔄 Get Captcha</button>
                 <div class="status-message" id="statusMsg"></div>
             `;
         }
 
-        // This is the original Step 1 logic
         async function searchStep1() {
-            const regNo = document.getElementById('search_regNo').value;
+            const regNo = document.getElementById('search_regNo').value.trim();
             const state = document.getElementById('search_state').value;
             
             if (!regNo || !state) {
@@ -202,98 +254,115 @@
                 return;
             }
             
-            sessionData.regNo = regNo;
+            sessionData.regNo = regNo.toUpperCase();
             sessionData.state = state;
             
-            showStatus('Fetching captcha screenshot...', 'info');
+            showStatus('🔄 Opening VAHAN portal invisibly and fetching captcha...', 'info');
             
-            const result = await callAutomation('search', { regNo, state });
+            const result = await callAutomation('search', { 
+                regNo: sessionData.regNo, 
+                state: sessionData.state 
+            });
             
             if (result.success && result.needsCaptcha) {
-                // We got the Base64 image. Show Step 2.
+                sessionData.sessionId = result.sessionId;
                 showSearchStep2(result.captchaImageBase64);
             } else {
-                showStatus('Error: ' + result.message, 'error');
+                showStatus('❌ Error: ' + result.message, 'error');
             }
         }
 
-        // This is the original Step 2
         function showSearchStep2(captchaImage) {
             document.getElementById('formSection').innerHTML = `
                 <h3>🔍 Know Your Vehicle - Step 2</h3>
-                <p><strong>Vehicle:</strong> ${sessionData.regNo}</p>
+                <p style="color: #666; font-size: 13px; margin-bottom: 10px;">
+                    <strong>Vehicle:</strong> ${sessionData.regNo} | <strong>State:</strong> ${sessionData.state}
+                </p>
                 <div class="form-group">
-                    <label>Enter Captcha *</label>
-                    <img src="${captchaImage}" class="captcha-image" alt="Captcha">
-                    <input type="text" id="captcha_input" placeholder="Enter captcha" maxlength="6">
+                    <label>Enter Captcha Code *</label>
+                    <div class="captcha-container">
+                        <img src="${captchaImage}" class="captcha-image" alt="Captcha">
+                        <p style="color: #666; font-size: 12px; margin-top: 10px;">
+                            Type the characters shown above
+                        </p>
+                    </div>
+                    <input type="text" id="captcha_input" placeholder="Enter captcha" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
                 </div>
-                <button class="btn" onclick="searchStep2()">Search Vehicle</button>
+                <button class="btn" onclick="searchStep2()">🔍 Search Vehicle</button>
                 <div class="status-message" id="statusMsg"></div>
             `;
+            
+            // Auto-focus on captcha input
+            document.getElementById('captcha_input').focus();
         }
 
-        // This is the original Step 2 logic
         async function searchStep2() {
-            const captcha = document.getElementById('captcha_input').value;
+            const captcha = document.getElementById('captcha_input').value.trim();
             
             if (!captcha) {
                 showStatus('Please enter captcha', 'error');
                 return;
             }
             
-            showStatus('Searching...', 'info');
+            showStatus('🔄 Submitting and fetching vehicle details...', 'info');
             
             const result = await callAutomation('search', {
                 regNo: sessionData.regNo,
                 state: sessionData.state,
-                captcha: captcha
+                captcha: captcha.toUpperCase(),
+                sessionId: sessionData.sessionId
             });
             
             if (result.success) {
                 showSearchResult(result.data);
             } else {
-                showStatus('Error: ' + result.message, 'error');
+                showStatus('❌ Error: ' + result.message, 'error');
             }
         }
 
-        // This is the original result display
         function showSearchResult(data) {
             document.getElementById('formSection').innerHTML = `
                 <div class="result-box">
-                    <h4>✅ Vehicle Details Retrieved</h4>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <h4>✅ Vehicle Details Retrieved Successfully</h4>
+                    
+                    <table class="result-table">
+                        <tr><td>Registration Number</td><td><strong>${data.regNo}</strong></td></tr>
+                        <tr><td>Registration Date</td><td>${data.regDate}</td></tr>
+                        <tr><td>RTO</td><td>${data.rto}</td></tr>
+                        <tr><td>Vehicle Class</td><td>${data.class}</td></tr>
+                        <tr><td>Maker/Model</td><td><strong>${data.model}</strong></td></tr>
+                        <tr><td>Year</td><td>${data.year}</td></tr>
+                        <tr><td>Fuel Type</td><td>${data.fuel}</td></tr>
+                        <tr><td>Color</td><td>${data.color}</td></tr>
+                        <tr><td>Seating Capacity</td><td>${data.seating}</td></tr>
+                        <tr><td>Engine Number</td><td>${data.engine}</td></tr>
+                        <tr><td>Chassis Number</td><td>${data.chassis}</td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">Insurance Details</h4>
+                    <table class="result-table">
+                        <tr><td>Insurance Company</td><td>${data.insCompany}</td></tr>
+                        <tr><td>Policy Number</td><td>${data.policyNo}</td></tr>
+                        <tr><td>Valid From</td><td>${data.insFrom}</td></tr>
+                        <tr><td>Valid Upto</td><td>${data.insUpto}</td></tr>
+                        <tr><td>Status</td><td><strong>${data.insStatus}</strong></td></tr>
+                    </table>
+                    
+                    <h4 style="margin-top: 20px;">Owner Details</h4>
+                    <table class="result-table">
+                        <tr><td>Owner Name</td><td><strong>${data.ownerName}</strong></td></tr>
+                        <tr><td>Father/Husband Name</td><td>${data.fatherName}</td></tr>
+                        <tr><td>Mobile</td><td>${data.mobile}</td></tr>
+                        <tr><td>Email</td><td>${data.email}</td></tr>
+                        <tr><td>Address</td><td>${data.address}</td></tr>
+                    </table>
                 </div>
-                <button class="btn" onclick="location.reload()">New Search</button>
+                <button class="btn" onclick="location.reload()">🔄 New Search</button>
             `;
         }
 
-        // === AUTH FLOW (Registration, Transfer, Update) ===
-        // ... (This entire section is UNCHANGED) ...
-        function showAuthStep1(task) { /* ... */ }
-        async function authStep1() { /* ... */ }
-        function showAuthStep2() { /* ... */ }
-        async function authStep2() { /* ... */ }
-
-        // === REGISTRATION FORM ===
-        // ... (This entire section is UNCHANGED) ...
-        function showRegisterForm() { /* ... */ }
-        async function submitRegistration() { /* ... */ }
-
-        // === TRANSFER FORM ===
-        // ... (This entire section is UNCHANGED) ...
-        function showTransferForm() { /* ... */ }
-        async function submitTransfer() { /* ... */ }
-
-        // === UPDATE FORM ===
-        // ... (This entire section is UNCHANGED) ...
-        function showUpdateForm() { /* ... */ }
-        async function submitUpdate() { /* ... */ }
-
-
-        // === HELPER FUNCTIONS ===
         async function callAutomation(taskType, data) {
             try {
-                // This endpoint URL is correct
                 const response = await fetch('http://localhost:5000/api/automation/execute', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -307,18 +376,10 @@
 
         function showStatus(message, type) {
             const statusEl = document.getElementById('statusMsg');
-            statusEl.textContent = message;
-            statusEl.className = 'status-message show ' + type;
-        }
-
-        function showResult(data) {
-            document.getElementById('formSection').innerHTML = `
-                <div class="result-box">
-                    <h4>✅ Task Completed Successfully!</h4>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                </div>
-                <button class="btn" onclick="location.reload()">Start New Task</button>
-            `;
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = 'status-message show ' + type;
+            }
         }
     </script>
 </body>

@@ -7,9 +7,6 @@ const path = require('path');
 
 // Import Playwright automation scripts
 const searchVehicle = require('../automation/searchVehicle');
-const registerVehicle = require('../automation/registerVehicle');
-const transferOwnership = require('../automation/transferOwnership');
-const updateContacts = require('../automation/updateContacts');
 
 // @route   POST /api/automation/execute
 // @desc    Execute automation task based on task type
@@ -20,7 +17,7 @@ router.post('/execute', async (req, res) => {
 
         console.log(`\n🤖 Automation Request Received`);
         console.log(`Task Type: ${taskType}`);
-        console.log(`Step:`, taskData.step || 'initial');
+        console.log(`Data:`, taskData);
 
         let result;
 
@@ -29,32 +26,45 @@ router.post('/execute', async (req, res) => {
                 console.log('🔍 Executing vehicle search automation...');
                 result = await searchVehicle(taskData);
                 
-                // --- THIS IS THE MODIFICATION ---
-                // If captcha is needed, read the image file and send it as Base64
+                // Convert captcha image to Base64 if needed
                 if (result.success && result.needsCaptcha && result.captchaImage) {
-                    const imageBuffer = fs.readFileSync(result.captchaImage);
-                    const base64Image = imageBuffer.toString('base64');
-                    // This is what the <img> tag in the HTML will use
-                    result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
-                    // We don't need to send the file path
-                    delete result.captchaImage; 
+                    try {
+                        const imageBuffer = fs.readFileSync(result.captchaImage);
+                        const base64Image = imageBuffer.toString('base64');
+                        result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
+                        delete result.captchaImage; // Remove file path
+                    } catch (imgError) {
+                        console.error('❌ Error reading captcha image:', imgError.message);
+                        return res.status(500).json({
+                            success: false,
+                            message: 'Failed to read captcha image'
+                        });
+                    }
                 }
-                // --- END OF MODIFICATION ---
                 break;
 
             case 'register':
-                console.log('📋 Executing vehicle registration automation...');
-                result = await registerVehicle(taskData);
+                console.log('📋 Vehicle registration automation coming soon...');
+                result = {
+                    success: false,
+                    message: 'Registration automation is not yet implemented'
+                };
                 break;
 
             case 'transfer':
-                console.log('🔄 Executing ownership transfer automation...');
-                result = await transferOwnership(taskData);
+                console.log('🔄 Ownership transfer automation coming soon...');
+                result = {
+                    success: false,
+                    message: 'Transfer automation is not yet implemented'
+                };
                 break;
 
             case 'update':
-                console.log('✏️ Executing contact update automation...');
-                result = await updateContacts(taskData);
+                console.log('✏️ Contact update automation coming soon...');
+                result = {
+                    success: false,
+                    message: 'Update automation is not yet implemented'
+                };
                 break;
 
             default:
@@ -68,7 +78,7 @@ router.post('/execute', async (req, res) => {
             console.log('✅ Automation step completed');
             res.status(200).json(result);
         } else {
-            console.log('❌ Automation failed');
+            console.log('❌ Automation failed:', result.message);
             res.status(500).json(result);
         }
 
@@ -89,7 +99,8 @@ router.get('/status', (req, res) => {
     res.json({
         success: true,
         message: 'Automation service is running',
-        availableTasks: ['search', 'register', 'transfer', 'update']
+        availableTasks: ['search'],
+        note: 'Only vehicle search is currently implemented'
     });
 });
 

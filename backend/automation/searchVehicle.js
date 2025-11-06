@@ -1,126 +1,213 @@
 // backend/automation/searchVehicle.js
+
 const { chromium } = require('playwright');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+
+// Store browser contexts globally to maintain session
+const activeSessions = new Map();
 
 async function searchVehicle(data) {
-    const browser = await chromium.launch({ 
-        headless: true, // Runs in the background
-        slowMo: 50 
-    });
-    
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    
+    const { regNo, state, captcha, sessionId } = data;
+
     try {
-        await page.goto('http://localhost:5000/index.html', { waitUntil: 'networkidle' });
-        
-        // --- STAGE 1: GET CAPTCHA ---
-        if (!data.captcha) {
-            console.log('🔍 Getting captcha screenshot...');
-            await page.waitForSelector('#regNumber', { timeout: 5000 });
+        // Step 1: Initialize browser and get captcha
+        if (!captcha) {
+            console.log('🔄 Step 1: Opening VAHAN portal and fetching captcha...');
             
-            await page.fill('#regNumber', data.regNo);
-            await page.selectOption('#stateSelect', data.state);
+            // Launch headless browser
+            const browser = await chromium.launch({
+                headless: true, // This makes it invisible
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
             
-            await page.waitForSelector('#captchaDisplay');
+            const context = await browser.newContext({
+                viewport: { width: 1280, height: 720 },
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            });
+            
+            const page = await context.newPage();
+            
+            // Generate unique session ID
+            const newSessionId = `search_${Date.now()}`;
+            
+            // Store the browser, context, and page for next step
+            activeSessions.set(newSessionId, { browser, context, page });
+            
+            // Navigate to your VAHAN portal
+            await page.goto('http://localhost:3000', { 
+                waitUntil: 'networkidle',
+                timeout: 30000 
+            });
+            
+            console.log('✅ Page loaded successfully');
+            
+            // Wait for the search form to be visible
+            await page.waitForSelector('#regNumber', { timeout: 10000 });
+            
+            // Fill in the registration number
+            await page.fill('#regNumber', regNo.toUpperCase());
+            
+            // Select the state
+            await page.selectOption('#stateSelect', state);
+            
+            console.log(`✅ Filled form with RegNo: ${regNo}, State: ${state}`);
+            
+            // Wait for captcha to be generated
+            await page.waitForSelector('#captchaDisplay', { timeout: 5000 });
+            await page.waitForTimeout(1000); // Give time for captcha to render
+            
+            // Take screenshot of the captcha element
             const captchaElement = await page.$('#captchaDisplay');
+            const screenshotPath = path.join(__dirname, `../temp/captcha_${newSessionId}.png`);
             
-            const screenshotsDir = path.join(__dirname, 'screenshots');
-            if (!fs.existsSync(screenshotsDir)){
-                fs.mkdirSync(screenshotsDir);
+            // Ensure temp directory exists
+            const tempDir = path.join(__dirname, '../temp');
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
             }
             
-            const screenshotPath = path.join(screenshotsDir, 'captcha-temp.png');
             await captchaElement.screenshot({ path: screenshotPath });
             
-            await browser.close();
+            console.log('✅ Captcha screenshot saved');
             
             return {
                 success: true,
                 needsCaptcha: true,
                 captchaImage: screenshotPath,
-                message: 'Please provide captcha to continue'
+                sessionId: newSessionId,
+                message: 'Captcha fetched. Please solve it and submit.'
             };
         }
         
-        // --- STAGE 2: SUBMIT WITH CAPTCHA ---
-        console.log('🔍 Submitting with captcha...');
-        await page.waitForSelector('#regNumber', { timeout: 5000 });
-
-        await page.fill('#regNumber', data.regNo);
-        await page.selectOption('#stateSelect', data.state);
-        
-        // Fill the user-provided captcha
-        await page.fill('#captchaInput', data.captcha);
-        console.log(`✅ Filled captcha: ${data.captcha}`);
-
-        // --- ⭐️ THIS IS THE FIX ⭐️ ---
-        // We force the page's "currentCaptcha" variable to match what we are typing.
-        await page.evaluate((captcha) => {
-            window.currentCaptcha = captcha;
-        }, data.captcha); // Pass the user's captcha into the page
-        console.log(`✅ Injected correct captcha value into replica page`);
-        // --- END OF FIX ---
-        
-        await page.click('button[type="submit"]');
-        console.log('✅ Submitted search form');
-        
-        // --- ⭐️ TIMEOUT REMOVED ⭐️ ---
-        // Setting timeout to 0 disables it (not recommended in general, but per your request)
-        await page.waitForSelector('#resultCard', { state: 'visible', timeout: 0 });
-        console.log('✅ Results loaded');
-        
-        // Extract vehicle details
-        const vehicleDetails = await page.evaluate(() => {
+        // Step 2: Submit form with captcha and get results
+        else {
+            console.log('🔄 Step 2: Submitting form with captcha...');
+            
+            // Retrieve the stored session
+            const session = activeSessions.get(sessionId);
+            
+            if (!session) {
+                throw new Error('Session expired. Please start again.');
+            }
+            
+            const { browser, context, page } = session;
+            
+            // Fill in the captcha
+            await page.fill('#captchaInput', captcha);
+            
+            console.log(`✅ Filled captcha: ${captcha}`);
+            
+            // Click the search button
+            await page.click('button[type="submit"]');
+            
+            console.log('✅ Form submitted, waiting for results...');
+            
+            // Wait for result card to appear (with longer timeout)
+            await page.waitForSelector('#resultCard', { 
+                state: 'visible',
+                timeout: 15000 
+            });
+            
+            console.log('✅ Results loaded');
+            
+            // Wait a bit for data to populate
+            await page.waitForTimeout(2000);
+            
+            // Extract vehicle details from the page
+            const vehicleData = await page.evaluate(() => {
+                const getData = (id) => {
+                    const el = document.getElementById(id);
+                    return el ? el.textContent.trim() : '-';
+                };
+                
+                return {
+                    regNo: getData('res_regNo'),
+                    regDate: getData('res_regDate'),
+                    rto: getData('res_rto'),
+                    class: getData('res_class'),
+                    fuel: getData('res_fuel'),
+                    model: getData('res_model'),
+                    year: getData('res_year'),
+                    engine: getData('res_engine'),
+                    chassis: getData('res_chassis'),
+                    color: getData('res_color'),
+                    seating: getData('res_seating'),
+                    insCompany: getData('res_insCompany'),
+                    policyNo: getData('res_policyNo'),
+                    insFrom: getData('res_insFrom'),
+                    insUpto: getData('res_insUpto'),
+                    insStatus: getData('res_insStatus'),
+                    fitnessUpto: getData('res_fitnessUpto'),
+                    fitnessStatus: getData('res_fitnessStatus'),
+                    pucNo: getData('res_pucNo'),
+                    pucUpto: getData('res_pucUpto'),
+                    pucStatus: getData('res_pucStatus'),
+                    taxUpto: getData('res_taxUpto'),
+                    ownerName: getData('res_ownerName'),
+                    fatherName: getData('res_fatherName'),
+                    mobile: getData('res_mobile'),
+                    email: getData('res_email'),
+                    address: getData('res_address'),
+                    permAddress: getData('res_permAddress'),
+                    financer: getData('res_financer')
+                };
+            });
+            
+            console.log('✅ Vehicle data extracted');
+            
+            // Clean up - close browser and remove session
+            await browser.close();
+            activeSessions.delete(sessionId);
+            
+            // Delete the captcha screenshot
+            const screenshotPath = path.join(__dirname, `../temp/captcha_${sessionId}.png`);
+            if (fs.existsSync(screenshotPath)) {
+                fs.unlinkSync(screenshotPath);
+            }
+            
             return {
-                regNo: document.getElementById('res_regNo')?.textContent || 'N/A',
-                regDate: document.getElementById('res_regDate')?.textContent || 'N/A',
-                rto: document.getElementById('res_rto')?.textContent || 'N/A',
-                class: document.getElementById('res_class')?.textContent || 'N/A',
-                fuel: document.getElementById('res_fuel')?.textContent || 'N/A',
-                model: document.getElementById('res_model')?.textContent || 'N/A',
-                year: document.getElementById('res_year')?.textContent || 'N/A',
-                ownerName: document.getElementById('res_ownerName_header')?.textContent || 'N/A',
-                fatherName: document.getElementById('res_fatherName_header')?.textContent || 'N/A',
-                mobile: document.getElementById('res_mobile_display')?.textContent || 'N/A',
-                email: document.getElementById('res_email_display')?.textContent || 'N/A',
-                address: document.getElementById('res_address_display')?.textContent || 'N/A',
-                insCompany: document.getElementById('res_insCompany')?.textContent || 'N/A',
-                insUpto: document.getElementById('res_insUpto')?.textContent || 'N/A'
+                success: true,
+                needsCaptcha: false,
+                data: vehicleData,
+                message: 'Vehicle details fetched successfully'
             };
-        });
-        
-        console.log('✅ Extracted vehicle details');
-        await browser.close();
-        
-        return {
-            success: true,
-            needsCaptcha: false,
-            message: 'Vehicle details retrieved successfully',
-            data: vehicleDetails
-        };
+        }
         
     } catch (error) {
-        console.error('❌ Automation error:', error.message);
+        console.error('❌ Automation Error:', error.message);
         
-        if (error.message.includes('page.waitForSelector: Timeout')) {
-            console.log('⚠️ Result card not visible. This can happen if the vehicle is not in the database.');
-            await browser.close();
-            return {
-                success: false,
-                message: 'Automation timed out. Check if the vehicle exists in the database.',
-                data: null
-            };
+        // Clean up on error
+        if (sessionId && activeSessions.has(sessionId)) {
+            const session = activeSessions.get(sessionId);
+            await session.browser.close().catch(() => {});
+            activeSessions.delete(sessionId);
         }
         
-        await browser.close();
         return {
             success: false,
-            message: error.message,
+            message: error.message || 'Automation failed',
             data: null
         };
     }
 }
+
+// Cleanup function to close abandoned sessions (call this periodically)
+function cleanupOldSessions() {
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000; // 10 minutes
+    
+    for (const [sessionId, session] of activeSessions.entries()) {
+        const sessionTime = parseInt(sessionId.split('_')[1]);
+        if (now - sessionTime > maxAge) {
+            session.browser.close().catch(() => {});
+            activeSessions.delete(sessionId);
+            console.log(`🧹 Cleaned up old session: ${sessionId}`);
+        }
+    }
+}
+
+// Run cleanup every 5 minutes
+setInterval(cleanupOldSessions, 5 * 60 * 1000);
 
 module.exports = searchVehicle;
