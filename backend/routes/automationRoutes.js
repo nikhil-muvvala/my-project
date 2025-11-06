@@ -29,13 +29,17 @@ router.post('/execute', async (req, res) => {
                 console.log('🔍 Executing vehicle search automation...');
                 result = await searchVehicle(taskData);
                 
-                // If captcha needed, send image as base64
-                if (result.needsCaptcha && result.captchaImage) {
+                // --- THIS IS THE MODIFICATION ---
+                // If captcha is needed, read the image file and send it as Base64
+                if (result.success && result.needsCaptcha && result.captchaImage) {
                     const imageBuffer = fs.readFileSync(result.captchaImage);
                     const base64Image = imageBuffer.toString('base64');
+                    // This is what the <img> tag in the HTML will use
                     result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
-                    delete result.captchaImage;
+                    // We don't need to send the file path
+                    delete result.captchaImage; 
                 }
+                // --- END OF MODIFICATION ---
                 break;
 
             case 'register':

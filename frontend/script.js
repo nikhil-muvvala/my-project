@@ -23,6 +23,16 @@ function generateCaptcha() {
 }
 
 // ===== VEHICLE SEARCH (NOW USES BACKEND API) =====
+// frontend/script.js
+
+// ... (keep all other functions as they are) ...
+
+// ===== VEHICLE SEARCH (NOW USES BACKEND API) =====
+// frontend/script.js
+
+// ... (keep all other functions as they are) ...
+
+// ===== VEHICLE SEARCH (NOW USES BACKEND API) =====
 async function searchVehicle(event) {
     event.preventDefault();
     showLoading(true);
@@ -30,7 +40,11 @@ async function searchVehicle(event) {
     const regNumber = document.getElementById('regNumber').value.trim().toUpperCase();
     const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
 
+    // --- THIS IS THE MODIFICATION ---
+    // We are removing the "&& captchaInput !== bypassCode"
+    // This makes the captcha check real again.
     if (captchaInput !== currentCaptcha) {
+    // --- END OF MODIFICATION ---
         showLoading(false);
         alert('❌ Invalid Captcha! Please try again.');
         generateCaptcha();
@@ -47,10 +61,7 @@ async function searchVehicle(event) {
         }
 
         const vehicleData = await response.json();
-
-        // Store in local cache for other functions to use
         vehicleDatabase[regNumber] = vehicleData;
-
         displayVehicleDetails(vehicleData);
 
         document.getElementById('captchaInput').value = '';
@@ -70,6 +81,10 @@ async function searchVehicle(event) {
         showLoading(false);
     }
 }
+
+// ... (rest of your script.js file) ...
+
+// ... (rest of your script.js file) ...
 
 function displayVehicleDetails(data) {
     // Basic Details

@@ -3,8 +3,8 @@ const { chromium } = require('playwright');
 
 async function registerVehicle(data) {
     const browser = await chromium.launch({ 
-        headless: true, // Run in background
-        slowMo: 50 
+        headless: false,
+        slowMo: 100 
     });
     
     const context = await browser.newContext();
@@ -14,7 +14,7 @@ async function registerVehicle(data) {
         console.log('📋 Starting vehicle registration automation...');
         
         // Navigate to VAHAN portal
-        await page.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+        await page.goto('http://localhost:5000/index.html', { waitUntil: 'networkidle' });
         console.log('✅ Navigated to VAHAN portal');
         
         // Step 1: Send OTP if not provided
@@ -29,7 +29,8 @@ async function registerVehicle(data) {
             await page.click('#sendOtpBtn');
             console.log('✅ Clicked Send OTP');
             
-            await page.waitForTimeout(2000);
+            // Wait for the OTP form to appear
+            await page.waitForTimeout(3000);
             await browser.close();
             
             return {
@@ -46,7 +47,10 @@ async function registerVehicle(data) {
             await page.waitForSelector('#loginModal.show', { timeout: 5000 });
             await page.fill('#loginEmail', data.email);
             await page.click('#sendOtpBtn');
+            
+            // Wait for OTP form to appear
             await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
+            console.log('✅ OTP form visible');
             
             await page.fill('#loginOTP', data.otp);
             console.log(`✅ Filled OTP: ${data.otp}`);
@@ -54,8 +58,36 @@ async function registerVehicle(data) {
             await page.click('#verifyOtpBtn');
             console.log('✅ Clicked Login');
             
-            await page.waitForSelector('#logoutBtn', { timeout: 10000 });
-            console.log('✅ Login successful');
+            // Wait for login to complete - check for logout button OR dashboard
+            try {
+                await Promise.race([
+                    page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 }),
+                    page.waitForSelector('#dashUserName', { timeout: 15000 })
+                ]);
+                console.log('✅ Login successful');
+            } catch (e) {
+                console.log('⚠️ Login button not visible, checking if already logged in...');
+                // Check if we're actually logged in by looking for user name
+                const isLoggedIn = await page.evaluate(() => {
+                    const btn = document.getElementById('logoutBtn');
+                    return btn && btn.style.display !== 'none';
+                });
+                
+                if (!isLoggedIn) {
+                    throw new Error('Login failed - OTP might be incorrect or expired');
+                }
+            }
+            
+            // Close modal if it's still open
+            const modalOpen = await page.evaluate(() => {
+                const modal = document.getElementById('loginModal');
+                return modal && modal.classList.contains('show');
+            });
+            
+            if (modalOpen) {
+                await page.click('#loginModal .close-btn');
+                await page.waitForTimeout(500);
+            }
             
             await browser.close();
             
@@ -76,11 +108,28 @@ async function registerVehicle(data) {
         await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
         await page.fill('#loginOTP', data.otp);
         await page.click('#verifyOtpBtn');
-        await page.waitForSelector('#logoutBtn', { timeout: 10000 });
         
-        // Navigate to registration
+        // Wait for login
+        await Promise.race([
+            page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 }),
+            page.waitForSelector('#dashUserName', { timeout: 15000 })
+        ]);
+        
+        // Close login modal if open
+        const modalOpen = await page.evaluate(() => {
+            const modal = document.getElementById('loginModal');
+            return modal && modal.classList.contains('show');
+        });
+        if (modalOpen) {
+            await page.click('#loginModal .close-btn');
+            await page.waitForTimeout(500);
+        }
+        
+        // Navigate to registration - click on e-Services
         await page.click('a[onclick*="services"]');
         await page.waitForTimeout(1000);
+        
+        // Click on New Vehicle Registration service card
         await page.click('.service-card:has-text("New Vehicle Registration")');
         await page.waitForSelector('#newRegModal.show', { timeout: 5000 });
         console.log('✅ Opened new registration modal');
@@ -97,14 +146,22 @@ async function registerVehicle(data) {
         if (data.color) await page.fill('#newReg_color', data.color);
         await page.fill('#newReg_amount', '500000');
         await page.selectOption('#newReg_rto', data.rto);
+        console.log('✅ Filled registration form');
         
+        // Check all checkboxes
         const checkboxes = await page.$$('#newRegModal input[type="checkbox"]');
         for (const checkbox of checkboxes) {
             await checkbox.check();
         }
+        console.log('✅ Checked all document checkboxes');
         
+        // Submit form
         await page.click('#newRegForm button[type="submit"]');
-        await page.waitForSelector('#receiptModal.show', { timeout: 15000 });
+        console.log('✅ Clicked submit');
+        
+        // Wait for receipt modal
+        await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
+        console.log('✅ Receipt modal opened');
         
         // Extract result
         const receiptText = await page.textContent('#receiptContentOutput');
@@ -116,10 +173,13 @@ async function registerVehicle(data) {
             registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
             ownerName: data.ownerName,
             model: data.model,
-            status: 'COMPLETED'
+            status: 'COMPLETED',
+            receiptPreview: receiptText.substring(0, 500) + '...'
         };
         
-        // Logout
+        console.log('✅ Registration completed:', result.registrationNumber);
+        
+        // Close receipt and logout
         await page.click('#receiptModal .close-btn');
         await page.waitForTimeout(500);
         await page.click('#logoutBtn');
