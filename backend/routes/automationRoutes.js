@@ -2,6 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 
 // Import Playwright automation scripts
 const searchVehicle = require('../automation/searchVehicle');
@@ -11,22 +13,29 @@ const updateContacts = require('../automation/updateContacts');
 
 // @route   POST /api/automation/execute
 // @desc    Execute automation task based on task type
-// @access  Public (no auth required for demonstration)
+// @access  Public
 router.post('/execute', async (req, res) => {
     try {
         const { taskType, ...taskData } = req.body;
 
         console.log(`\n🤖 Automation Request Received`);
         console.log(`Task Type: ${taskType}`);
-        console.log(`Task Data:`, taskData);
+        console.log(`Step:`, taskData.step || 'initial');
 
         let result;
 
-        // Route to appropriate automation script based on task type
         switch (taskType) {
             case 'search':
                 console.log('🔍 Executing vehicle search automation...');
                 result = await searchVehicle(taskData);
+                
+                // If captcha needed, send image as base64
+                if (result.needsCaptcha && result.captchaImage) {
+                    const imageBuffer = fs.readFileSync(result.captchaImage);
+                    const base64Image = imageBuffer.toString('base64');
+                    result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
+                    delete result.captchaImage;
+                }
                 break;
 
             case 'register':
@@ -51,9 +60,8 @@ router.post('/execute', async (req, res) => {
                 });
         }
 
-        // Return result
         if (result.success) {
-            console.log('✅ Automation completed successfully');
+            console.log('✅ Automation step completed');
             res.status(200).json(result);
         } else {
             console.log('❌ Automation failed');
