@@ -7,6 +7,38 @@ const path = require('path');
 
 // Import Playwright automation scripts
 const searchVehicle = require('../automation/searchVehicle');
+const { registerVehicle } = require('../automation/registerVehicle');
+const { transferOwnership } = require('../automation/transferOwnership');
+const { updateContacts } = require('../automation/updateContacts');
+
+// --- THIS FUNCTION IS NOW FIXED ---
+// Helper function to handle captcha image conversion
+const handleCaptchaResponse = (res, result) => {
+    try {
+        // 1. Store the path in a variable
+        const imagePath = result.captchaImage; 
+
+        // 2. Read the file using the variable
+        const imageBuffer = fs.readFileSync(imagePath);
+        const base64Image = imageBuffer.toString('base64');
+        result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
+        
+        // 3. Delete the property from the object we're sending to the user
+        delete result.captchaImage; 
+        
+        // 4. Delete the actual file from the server using the variable
+        fs.unlinkSync(imagePath);
+        
+        res.status(200).json(result);
+    } catch (imgError) {
+        console.error('❌ Error reading/deleting captcha image:', imgError.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to read captcha image'
+        });
+    }
+};
+// --- END OF FIX ---
 
 // @route   POST /api/automation/execute
 // @desc    Execute automation task based on task type
@@ -25,46 +57,30 @@ router.post('/execute', async (req, res) => {
             case 'search':
                 console.log('🔍 Executing vehicle search automation...');
                 result = await searchVehicle(taskData);
-                
-                // Convert captcha image to Base64 if needed
-                if (result.success && result.needsCaptcha && result.captchaImage) {
-                    try {
-                        const imageBuffer = fs.readFileSync(result.captchaImage);
-                        const base64Image = imageBuffer.toString('base64');
-                        result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
-                        delete result.captchaImage; // Remove file path
-                    } catch (imgError) {
-                        console.error('❌ Error reading captcha image:', imgError.message);
-                        return res.status(500).json({
-                            success: false,
-                            message: 'Failed to read captcha image'
-                        });
-                    }
+                if (result.success && result.needsCaptcha) {
+                    return handleCaptchaResponse(res, result);
                 }
                 break;
 
             case 'register':
-                console.log('📋 Vehicle registration automation coming soon...');
-                result = {
-                    success: false,
-                    message: 'Registration automation is not yet implemented'
-                };
+                console.log('📋 Executing vehicle registration automation...');
+                result = await registerVehicle(taskData);
                 break;
 
             case 'transfer':
-                console.log('🔄 Ownership transfer automation coming soon...');
-                result = {
-                    success: false,
-                    message: 'Transfer automation is not yet implemented'
-                };
+                console.log('🔄 Executing ownership transfer automation...');
+                result = await transferOwnership(taskData);
+                if (result.success && result.step === 'search_captcha_sent') {
+                    return handleCaptchaResponse(res, result);
+                }
                 break;
 
             case 'update':
-                console.log('✏️ Contact update automation coming soon...');
-                result = {
-                    success: false,
-                    message: 'Update automation is not yet implemented'
-                };
+                console.log('✏️ Executing contact update automation...');
+                result = await updateContacts(taskData);
+                if (result.success && result.step === 'search_captcha_sent') {
+                    return handleCaptchaResponse(res, result);
+                }
                 break;
 
             default:
@@ -99,8 +115,8 @@ router.get('/status', (req, res) => {
     res.json({
         success: true,
         message: 'Automation service is running',
-        availableTasks: ['search'],
-        note: 'Only vehicle search is currently implemented'
+        availableTasks: ['search', 'register', 'transfer', 'update'],
+        note: 'All tasks are now implemented'
     });
 });
 

@@ -1,210 +1,203 @@
 // backend/automation/registerVehicle.js
 const { chromium } = require('playwright');
+const path = require('path');
+const fs = require('fs');
+
+// We re-use the same active sessions map
+const activeSessions = new Map();
+
+// Helper to manage sessions
+function getActiveSession(sessionId) {
+    return activeSessions.get(sessionId);
+}
+
+function setActiveSession(sessionId, sessionData) {
+    activeSessions.set(sessionId, sessionData);
+}
+
+function removeActiveSession(sessionId) {
+    const session = activeSessions.get(sessionId);
+    if (session) {
+        session.browser.close().catch(() => {});
+        activeSessions.delete(sessionId);
+    }
+}
 
 async function registerVehicle(data) {
-    const browser = await chromium.launch({ 
-        headless: false,
-        slowMo: 100 
-    });
-    
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    
+    const { email, otp, sessionId, ...vehicleDetails } = data;
+
     try {
-        console.log('📋 Starting vehicle registration automation...');
-        
-        // Navigate to VAHAN portal
-        await page.goto('http://localhost:5000/index.html', { waitUntil: 'networkidle' });
-        console.log('✅ Navigated to VAHAN portal');
-        
-        // Step 1: Send OTP if not provided
-        if (!data.otpSent) {
+        // Step 1: Send OTP (Unchanged)
+        if (!sessionId && !otp) {
+            console.log('📋 Step 1: Sending OTP...');
+            const browser = await chromium.launch({ headless: true, slowMo: 50 });
+            const context = await browser.newContext();
+            const page = await context.newPage();
+            
+            await page.goto('http://localhost:5000', { waitUntil: 'networkidle' });
+            
             await page.click('#loginBtn');
             await page.waitForSelector('#loginModal.show', { timeout: 5000 });
-            console.log('✅ Opened login modal');
-            
-            await page.fill('#loginEmail', data.email);
-            console.log(`✅ Filled email: ${data.email}`);
-            
+            await page.fill('#loginEmail', email);
             await page.click('#sendOtpBtn');
-            console.log('✅ Clicked Send OTP');
             
-            // Wait for the OTP form to appear
-            await page.waitForTimeout(3000);
-            await browser.close();
+            // Wait for OTP form to ensure email was accepted
+            await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
             
+            const newSessionId = `register_${Date.now()}`;
+            setActiveSession(newSessionId, { browser, context, page, email });
+            
+            console.log('✅ OTP Sent. Awaiting verification.');
             return {
                 success: true,
                 step: 'otp_sent',
-                message: 'OTP sent to email. Please provide OTP to continue.',
-                data: { email: data.email }
+                sessionId: newSessionId,
+                message: 'OTP sent. Please provide OTP to continue.'
             };
         }
-        
-        // Step 2: Verify OTP if not yet verified
-        if (!data.loggedIn) {
-            await page.click('#loginBtn');
-            await page.waitForSelector('#loginModal.show', { timeout: 5000 });
-            await page.fill('#loginEmail', data.email);
-            await page.click('#sendOtpBtn');
-            
-            // Wait for OTP form to appear
-            await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
-            console.log('✅ OTP form visible');
-            
-            await page.fill('#loginOTP', data.otp);
-            console.log(`✅ Filled OTP: ${data.otp}`);
-            
+
+        // Step 2: Verify OTP (Unchanged)
+        if (sessionId && otp && !vehicleDetails.ownerName) {
+            console.log('📋 Step 2: Verifying OTP...');
+            const session = getActiveSession(sessionId);
+            if (!session) throw new Error('Session expired.');
+
+            const { page } = session;
+
+            await page.fill('#loginOTP', otp);
             await page.click('#verifyOtpBtn');
-            console.log('✅ Clicked Login');
             
-            // Wait for login to complete - check for logout button OR dashboard
-            try {
-                await Promise.race([
-                    page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 }),
-                    page.waitForSelector('#dashUserName', { timeout: 15000 })
-                ]);
-                console.log('✅ Login successful');
-            } catch (e) {
-                console.log('⚠️ Login button not visible, checking if already logged in...');
-                // Check if we're actually logged in by looking for user name
-                const isLoggedIn = await page.evaluate(() => {
-                    const btn = document.getElementById('logoutBtn');
-                    return btn && btn.style.display !== 'none';
-                });
-                
-                if (!isLoggedIn) {
-                    throw new Error('Login failed - OTP might be incorrect or expired');
-                }
-            }
+            // Wait for login to complete (logout button appears)
+            await page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 });
             
-            // Close modal if it's still open
-            const modalOpen = await page.evaluate(() => {
-                const modal = document.getElementById('loginModal');
-                return modal && modal.classList.contains('show');
-            });
+            console.log('✅ Login Successful. Awaiting vehicle details.');
             
-            if (modalOpen) {
-                await page.click('#loginModal .close-btn');
-                await page.waitForTimeout(500);
-            }
-            
-            await browser.close();
-            
+            // We keep the session (browser) open!
             return {
                 success: true,
                 step: 'logged_in',
-                message: 'Login successful. Please provide vehicle details.',
-                data: { email: data.email, authenticated: true }
+                sessionId: sessionId,
+                message: 'Login successful. Please provide vehicle details.'
             };
         }
-        
-        // Step 3: Complete registration with vehicle details
-        // Login first
-        await page.click('#loginBtn');
-        await page.waitForSelector('#loginModal.show', { timeout: 5000 });
-        await page.fill('#loginEmail', data.email);
-        await page.click('#sendOtpBtn');
-        await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
-        await page.fill('#loginOTP', data.otp);
-        await page.click('#verifyOtpBtn');
-        
-        // Wait for login
-        await Promise.race([
-            page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 }),
-            page.waitForSelector('#dashUserName', { timeout: 15000 })
-        ]);
-        
-        // Close login modal if open
-        const modalOpen = await page.evaluate(() => {
-            const modal = document.getElementById('loginModal');
-            return modal && modal.classList.contains('show');
-        });
-        if (modalOpen) {
-            await page.click('#loginModal .close-btn');
+
+        // Step 3: Fill and Submit Registration Form
+        if (sessionId && vehicleDetails.ownerName) {
+            console.log('📋 Step 3: Filling registration form...');
+            const session = getActiveSession(sessionId);
+            if (!session) throw new Error('Session expired.');
+
+            const { browser, page } = session;
+            
+            // Click on e-Services (if not already there)
+            await page.click('a[onclick*="services"]');
             await page.waitForTimeout(500);
+
+            // Click on New Vehicle Registration service card
+            await page.click('.service-card:has-text("New Vehicle Registration")');
+            await page.waitForSelector('#newRegModal.show', { timeout: 5000 });
+            console.log('✅ Opened new registration modal');
+
+            // --- THIS IS THE FIX ---
+            // Wait for the first form field to be visible and stable
+            await page.waitForSelector('#newReg_ownerName', { state: 'visible', timeout: 5000 });
+            await page.waitForTimeout(200); // Small buffer for CSS animation
+            console.log('✅ Form is visible and ready.');
+            // --- END OF FIX ---
+
+            // Fill the form with data from the portal
+            await page.fill('#newReg_ownerName', vehicleDetails.ownerName);
+            await page.fill('#newReg_fatherName', vehicleDetails.fatherName);
+            await page.fill('#newReg_mobile', vehicleDetails.mobile);
+            await page.fill('#newReg_email', session.email); // Use the verified email
+            await page.fill('#newReg_address', vehicleDetails.address);
+            await page.fill('#newReg_class', vehicleDetails.vehicleClass);
+            await page.fill('#newReg_model', vehicleDetails.model);
+            await page.selectOption('#newReg_fuel', vehicleDetails.fuel);
+            await page.fill('#newReg_color', vehicleDetails.color);
+            await page.fill('#newReg_amount', vehicleDetails.price);
+            
+            // This line will now work
+            await page.selectOption('#newReg_rto', vehicleDetails.rto);
+            console.log('✅ Filled registration form');
+
+            // Check all checkboxes
+            const checkboxes = await page.$$('#newRegModal input[type="checkbox"]');
+            for (const checkbox of checkboxes) {
+                await checkbox.check();
+            }
+            console.log('✅ Checked all document checkboxes');
+
+            // Submit form
+            await page.click('#newRegForm button[type="submit"]');
+            
+            // Wait for receipt modal
+            await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
+            console.log('✅ Receipt modal opened');
+            
+            // Extract result
+            const receiptText = await page.textContent('#receiptContentOutput');
+            const regNoMatch = receiptText.match(/Vehicle Reg\. No: ([A-Z0-9]+)/);
+            const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
+            
+            const result = {
+                applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
+                registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
+                ownerName: vehicleDetails.ownerName,
+                model: vehicleDetails.model,
+                status: 'COMPLETED',
+                receiptPreview: receiptText.substring(0, 500) + '...'
+            };
+            
+            console.log('✅ Registration completed:', result.registrationNumber);
+            
+            // Task is complete, clean up the session
+            removeActiveSession(sessionId);
+            
+            return {
+                success: true,
+                step: 'completed',
+                message: 'Vehicle registered successfully',
+                data: result
+            };
         }
-        
-        // Navigate to registration - click on e-Services
-        await page.click('a[onclick*="services"]');
-        await page.waitForTimeout(1000);
-        
-        // Click on New Vehicle Registration service card
-        await page.click('.service-card:has-text("New Vehicle Registration")');
-        await page.waitForSelector('#newRegModal.show', { timeout: 5000 });
-        console.log('✅ Opened new registration modal');
-        
-        // Fill form
-        await page.fill('#newReg_ownerName', data.ownerName);
-        await page.fill('#newReg_fatherName', data.fatherName);
-        await page.fill('#newReg_mobile', data.mobile);
-        if (data.regEmail) await page.fill('#newReg_email', data.regEmail);
-        await page.fill('#newReg_address', data.address);
-        await page.fill('#newReg_class', data.vehicleClass);
-        await page.fill('#newReg_model', data.model);
-        await page.selectOption('#newReg_fuel', data.fuel);
-        if (data.color) await page.fill('#newReg_color', data.color);
-        await page.fill('#newReg_amount', '500000');
-        await page.selectOption('#newReg_rto', data.rto);
-        console.log('✅ Filled registration form');
-        
-        // Check all checkboxes
-        const checkboxes = await page.$$('#newRegModal input[type="checkbox"]');
-        for (const checkbox of checkboxes) {
-            await checkbox.check();
-        }
-        console.log('✅ Checked all document checkboxes');
-        
-        // Submit form
-        await page.click('#newRegForm button[type="submit"]');
-        console.log('✅ Clicked submit');
-        
-        // Wait for receipt modal
-        await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
-        console.log('✅ Receipt modal opened');
-        
-        // Extract result
-        const receiptText = await page.textContent('#receiptContentOutput');
-        const regNoMatch = receiptText.match(/Vehicle Reg\. No: ([A-Z0-9]+)/);
-        const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
-        
-        const result = {
-            applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
-            registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
-            ownerName: data.ownerName,
-            model: data.model,
-            status: 'COMPLETED',
-            receiptPreview: receiptText.substring(0, 500) + '...'
-        };
-        
-        console.log('✅ Registration completed:', result.registrationNumber);
-        
-        // Close receipt and logout
-        await page.click('#receiptModal .close-btn');
-        await page.waitForTimeout(500);
-        await page.click('#logoutBtn');
-        await page.waitForTimeout(1000);
-        console.log('✅ Logged out');
-        
-        await browser.close();
-        
-        return {
-            success: true,
-            step: 'completed',
-            message: 'Vehicle registered successfully',
-            data: result
-        };
-        
+
+        // If no condition is met, something is wrong
+        throw new Error('Invalid request state.');
+
     } catch (error) {
-        console.error('❌ Automation error:', error.message);
-        await browser.close();
+        console.error('❌ Automation Error:', error.message);
+        // Clean up on error
+        removeActiveSession(sessionId);
         
         return {
             success: false,
-            message: error.message,
+            message: error.message || 'Automation failed',
             data: null
         };
     }
 }
 
-module.exports = registerVehicle;
+// Re-using the cleanup logic from your searchVehicle script
+function cleanupOldSessions() {
+    const now = Date.now();
+    const maxAge = 10 * 60 * 1000; // 10 minutes
+    
+    for (const [sessionId, session] of activeSessions.entries()) {
+        const sessionTime = parseInt(sessionId.split('_')[1]);
+        if (now - sessionTime > maxAge) {
+            session.browser.close().catch(() => {});
+            activeSessions.delete(sessionId);
+            console.log(`🧹 Cleaned up old session: ${sessionId}`);
+        }
+    }
+}
+setInterval(cleanupOldSessions, 5 * 60 * 1000);
+
+// We need to export an object containing all our functions
+module.exports = {
+    registerVehicle,
+    getActiveSession,
+    setActiveSession,
+    removeActiveSession
+};

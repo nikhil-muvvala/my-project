@@ -163,45 +163,30 @@
         let selectedTask = null;
         let sessionData = {};
 
-        // All Indian States and Union Territories
         const indianStates = [
-            { code: 'AP', name: 'Andhra Pradesh' },
-            { code: 'AR', name: 'Arunachal Pradesh' },
-            { code: 'AS', name: 'Assam' },
-            { code: 'BR', name: 'Bihar' },
-            { code: 'CG', name: 'Chhattisgarh' },
-            { code: 'GA', name: 'Goa' },
-            { code: 'GJ', name: 'Gujarat' },
-            { code: 'HR', name: 'Haryana' },
-            { code: 'HP', name: 'Himachal Pradesh' },
-            { code: 'JK', name: 'Jammu and Kashmir' },
-            { code: 'JH', name: 'Jharkhand' },
-            { code: 'KA', name: 'Karnataka' },
-            { code: 'KL', name: 'Kerala' },
-            { code: 'MP', name: 'Madhya Pradesh' },
-            { code: 'MH', name: 'Maharashtra' },
-            { code: 'MN', name: 'Manipur' },
-            { code: 'ML', name: 'Meghalaya' },
-            { code: 'MZ', name: 'Mizoram' },
-            { code: 'NL', name: 'Nagaland' },
-            { code: 'OD', name: 'Odisha' },
-            { code: 'PB', name: 'Punjab' },
-            { code: 'RJ', name: 'Rajasthan' },
-            { code: 'SK', name: 'Sikkim' },
-            { code: 'TN', name: 'Tamil Nadu' },
-            { code: 'TS', name: 'Telangana' },
-            { code: 'TR', name: 'Tripura' },
-            { code: 'UP', name: 'Uttar Pradesh' },
-            { code: 'UK', name: 'Uttarakhand' },
-            { code: 'WB', name: 'West Bengal' },
-            { code: 'AN', name: 'Andaman and Nicobar' },
-            { code: 'CH', name: 'Chandigarh' },
-            { code: 'DD', name: 'Dadra and Nagar Haveli and Daman and Diu' },
-            { code: 'DL', name: 'Delhi' },
-            { code: 'LA', name: 'Ladakh' },
-            { code: 'LD', name: 'Lakshadweep' },
-            { code: 'PY', name: 'Puducherry' }
+            { code: 'AP', name: 'Andhra Pradesh' }, { code: 'AR', name: 'Arunachal Pradesh' },
+            { code: 'AS', name: 'Assam' }, { code: 'BR', name: 'Bihar' },
+            { code: 'CG', name: 'Chhattisgarh' }, { code: 'GA', name: 'Goa' },
+            { code: 'GJ', name: 'Gujarat' }, { code: 'HR', name: 'Haryana' },
+            { code: 'HP', name: 'Himachal Pradesh' }, { code: 'JK', name: 'Jammu and Kashmir' },
+            { code: 'JH', name: 'Jharkhand' }, { code: 'KA', name: 'Karnataka' },
+            { code: 'KL', name: 'Kerala' }, { code: 'MP', name: 'Madhya Pradesh' },
+            { code: 'MH', name: 'Maharashtra' }, { code: 'MN', name: 'Manipur' },
+            { code: 'ML', name: 'Meghalaya' }, { code: 'MZ', name: 'Mizoram' },
+            { code: 'NL', name: 'Nagaland' }, { code: 'OD', name: 'Odisha' },
+            { code: 'PB', name: 'Punjab' }, { code: 'RJ', name: 'Rajasthan' },
+            { code: 'SK', name: 'Sikkim' }, { code: 'TN', name: 'Tamil Nadu' },
+            { code: 'TS', name: 'Telangana' }, { code: 'TR', name: 'Tripura' },
+            { code: 'UP', name: 'Uttar Pradesh' }, { code: 'UK', name: 'Uttarakhand' },
+            { code: 'WB', name: 'West Bengal' }, { code: 'AN', name: 'Andaman and Nicobar' },
+            { code: 'CH', name: 'Chandigarh' }, { code: 'DD', name: 'Dadra and Nagar Haveli and Daman and Diu' },
+            { code: 'DL', name: 'Delhi' }, { code: 'LA', name: 'Ladakh' },
+            { code: 'LD', name: 'Lakshadweep' }, { code: 'PY', name: 'Puducherry' }
         ];
+        
+        const stateOptions = indianStates.map(state => 
+            `<option value="${state.code}">${state.name} (${state.code})</option>`
+        ).join('');
 
         function selectTask(task) {
             document.querySelectorAll('.task-card').forEach(c => c.classList.remove('selected'));
@@ -214,21 +199,21 @@
             
             if (task === 'search') {
                 showSearchStep1();
+            } else if (task === 'register') {
+                showRegisterStep1();
+            } else if (task === 'transfer') {
+                showTransferStep1();
+            } else if (task === 'update') {
+                showUpdateStep1();
             } else {
                 showStatus('This feature is coming soon!', 'info');
             }
         }
 
+        // === SEARCH VEHICLE FLOW ===
         function showSearchStep1() {
-            const stateOptions = indianStates.map(state => 
-                `<option value="${state.code}">${state.name} (${state.code})</option>`
-            ).join('');
-
             document.getElementById('formSection').innerHTML = `
                 <h3>🔍 Know Your Vehicle - Step 1</h3>
-                <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-                    Enter vehicle registration number and select state
-                </p>
                 <div class="form-group">
                     <label>Vehicle Registration Number *</label>
                     <input type="text" id="search_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;">
@@ -244,26 +229,19 @@
                 <div class="status-message" id="statusMsg"></div>
             `;
         }
-
         async function searchStep1() {
             const regNo = document.getElementById('search_regNo').value.trim();
             const state = document.getElementById('search_state').value;
-            
             if (!regNo || !state) {
-                showStatus('Please fill all fields', 'error');
-                return;
+                showStatus('Please fill all fields', 'error'); return;
             }
-            
             sessionData.regNo = regNo.toUpperCase();
             sessionData.state = state;
-            
             showStatus('🔄 Opening VAHAN portal invisibly and fetching captcha...', 'info');
-            
             const result = await callAutomation('search', { 
                 regNo: sessionData.regNo, 
                 state: sessionData.state 
             });
-            
             if (result.success && result.needsCaptcha) {
                 sessionData.sessionId = result.sessionId;
                 showSearchStep2(result.captchaImageBase64);
@@ -271,89 +249,53 @@
                 showStatus('❌ Error: ' + result.message, 'error');
             }
         }
-
         function showSearchStep2(captchaImage) {
             document.getElementById('formSection').innerHTML = `
                 <h3>🔍 Know Your Vehicle - Step 2</h3>
-                <p style="color: #666; font-size: 13px; margin-bottom: 10px;">
-                    <strong>Vehicle:</strong> ${sessionData.regNo} | <strong>State:</strong> ${sessionData.state}
-                </p>
+                <p><strong>Vehicle:</strong> ${sessionData.regNo} | <strong>State:</strong> ${sessionData.state}</p>
                 <div class="form-group">
                     <label>Enter Captcha Code *</label>
                     <div class="captcha-container">
                         <img src="${captchaImage}" class="captcha-image" alt="Captcha">
-                        <p style="color: #666; font-size: 12px; margin-top: 10px;">
-                            Type the characters shown above
-                        </p>
                     </div>
                     <input type="text" id="captcha_input" placeholder="Enter captcha" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
                 </div>
                 <button class="btn" onclick="searchStep2()">🔍 Search Vehicle</button>
                 <div class="status-message" id="statusMsg"></div>
             `;
-            
-            // Auto-focus on captcha input
             document.getElementById('captcha_input').focus();
         }
-
         async function searchStep2() {
             const captcha = document.getElementById('captcha_input').value.trim();
-            
             if (!captcha) {
-                showStatus('Please enter captcha', 'error');
-                return;
+                showStatus('Please enter captcha', 'error'); return;
             }
-            
             showStatus('🔄 Submitting and fetching vehicle details...', 'info');
-            
             const result = await callAutomation('search', {
                 regNo: sessionData.regNo,
                 state: sessionData.state,
                 captcha: captcha.toUpperCase(),
                 sessionId: sessionData.sessionId
             });
-            
             if (result.success) {
                 showSearchResult(result.data);
             } else {
                 showStatus('❌ Error: ' + result.message, 'error');
             }
         }
-
         function showSearchResult(data) {
-            document.getElementById('formSection').innerHTML = `
+             document.getElementById('formSection').innerHTML = `
                 <div class="result-box">
                     <h4>✅ Vehicle Details Retrieved Successfully</h4>
-                    
                     <table class="result-table">
                         <tr><td>Registration Number</td><td><strong>${data.regNo}</strong></td></tr>
-                        <tr><td>Registration Date</td><td>${data.regDate}</td></tr>
-                        <tr><td>RTO</td><td>${data.rto}</td></tr>
-                        <tr><td>Vehicle Class</td><td>${data.class}</td></tr>
-                        <tr><td>Maker/Model</td><td><strong>${data.model}</strong></td></tr>
-                        <tr><td>Year</td><td>${data.year}</td></tr>
-                        <tr><td>Fuel Type</td><td>${data.fuel}</td></tr>
-                        <tr><td>Color</td><td>${data.color}</td></tr>
-                        <tr><td>Seating Capacity</td><td>${data.seating}</td></tr>
-                        <tr><td>Engine Number</td><td>${data.engine}</td></tr>
-                        <tr><td>Chassis Number</td><td>${data.chassis}</td></tr>
-                    </table>
-                    
-                    <h4 style="margin-top: 20px;">Insurance Details</h4>
-                    <table class="result-table">
-                        <tr><td>Insurance Company</td><td>${data.insCompany}</td></tr>
-                        <tr><td>Policy Number</td><td>${data.policyNo}</td></tr>
-                        <tr><td>Valid From</td><td>${data.insFrom}</td></tr>
-                        <tr><td>Valid Upto</td><td>${data.insUpto}</td></tr>
-                        <tr><td>Status</td><td><strong>${data.insStatus}</strong></td></tr>
-                    </table>
-                    
-                    <h4 style="margin-top: 20px;">Owner Details</h4>
-                    <table class="result-table">
                         <tr><td>Owner Name</td><td><strong>${data.ownerName}</strong></td></tr>
-                        <tr><td>Father/Husband Name</td><td>${data.fatherName}</td></tr>
-                        <tr><td>Mobile</td><td>${data.mobile}</td></tr>
-                        <tr><td>Email</td><td>${data.email}</td></tr>
+                        <tr><td>Maker/Model</td><td><strong>${data.model}</strong></td></tr>
+                        <tr><td>RTO</td><td>${data.rto}</td></tr>
+                        <tr><td>Registration Date</td><td>${data.regDate}</td></tr>
+                        <tr><td>Vehicle Class</td><td>${data.class}</td></tr>
+                        <tr><td>Fuel Type</td><td>${data.fuel}</td></tr>
+                        <tr><td>Insurance Upto</td><td>${data.insUpto}</td></tr>
                         <tr><td>Address</td><td>${data.address}</td></tr>
                     </table>
                 </div>
@@ -361,6 +303,493 @@
             `;
         }
 
+
+        // === VEHICLE REGISTRATION FLOW ===
+        function showRegisterStep1() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>📋 Vehicle Registration - Step 1: Login</h3>
+                <div class="form-group">
+                    <label>Your Email Address *</label>
+                    <input type="email" id="reg_email" placeholder="e.g., user@example.com">
+                </div>
+                <button class="btn" onclick="registerStep1()">Send OTP</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+        async function registerStep1() {
+            const email = document.getElementById('reg_email').value.trim();
+            if (!email) {
+                showStatus('Please enter an email address', 'error'); return;
+            }
+            sessionData.email = email;
+            showStatus('🔄 Contacting VAHAN portal to send OTP...', 'info');
+            const result = await callAutomation('register', { email: email });
+            if (result.success && result.step === 'otp_sent') {
+                sessionData.sessionId = result.sessionId;
+                showRegisterStep2();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showRegisterStep2() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>📋 Vehicle Registration - Step 2: Verify OTP</h3>
+                <p>An OTP has been sent to <strong>${sessionData.email}</strong>. Please enter it below.</p>
+                <div class="form-group">
+                    <label>Enter 6-Digit OTP *</label>
+                    <input type="text" id="reg_otp" placeholder="123456" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
+                </div>
+                <button class="btn" onclick="registerStep2()">Verify OTP & Login</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+            document.getElementById('reg_otp').focus();
+        }
+        async function registerStep2() {
+            const otp = document.getElementById('reg_otp').value.trim();
+            if (!otp) {
+                showStatus('Please enter the OTP', 'error'); return;
+            }
+            showStatus('🔄 Verifying OTP and logging in...', 'info');
+            const result = await callAutomation('register', {
+                sessionId: sessionData.sessionId,
+                email: sessionData.email,
+                otp: otp
+            });
+            if (result.success && result.step === 'logged_in') {
+                showRegisterStep3();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showRegisterStep3() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>📋 Vehicle Registration - Step 3: Vehicle Details</h3>
+                <p style="color: #4caf50;"><strong>Login successful!</strong> Please enter the new vehicle details.</p>
+                <h4>Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Owner Name *</label><input type="text" id="reg_ownerName" placeholder="Full Name"></div>
+                    <div class="form-group"><label>Father/Husband Name *</label><input type="text" id="reg_fatherName" placeholder="Father's Name"></div>
+                </div>
+                <div class="form-group"><label>Mobile Number *</label><input type="tel" id="reg_mobile" placeholder="9876543210" pattern="[0-9]{10}"></div>
+                <div class="form-group"><label>Address *</label><textarea id="reg_address" rows="3" placeholder="Full Address"></textarea></div>
+                <h4>Vehicle Details</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Vehicle Class *</label><input type="text" id="reg_vehicleClass" placeholder="e.g., Motor Car"></div>
+                    <div class="form-group"><label>Maker / Model *</label><input type="text" id="reg_model" placeholder="e.g., MARUTI SUZUKI SWIFT VXI"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Fuel Type *</label><select id="reg_fuel"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option></select></div>
+                    <div class="form-group"><label>Color *</label><input type="text" id="reg_color" placeholder="e.g., White"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Ex-Showroom Price (₹) *</label><input type="number" id="reg_price" placeholder="500000"></div>
+                    <div class="form-group"><label>Select RTO / State *</label><select id="reg_rto"><option value="">-- Select State --</option>${stateOptions}</select></div>
+                </div>
+                <button class="btn" onclick="registerStep3()">Submit Registration</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+        async function registerStep3() {
+            const vehicleData = {
+                ownerName: document.getElementById('reg_ownerName').value,
+                fatherName: document.getElementById('reg_fatherName').value,
+                mobile: document.getElementById('reg_mobile').value,
+                address: document.getElementById('reg_address').value,
+                vehicleClass: document.getElementById('reg_vehicleClass').value,
+                model: document.getElementById('reg_model').value,
+                fuel: document.getElementById('reg_fuel').value,
+                color: document.getElementById('reg_color').value,
+                price: document.getElementById('reg_price').value,
+                rto: document.getElementById('reg_rto').value
+            };
+            for (let key in vehicleData) {
+                if (!vehicleData[key]) {
+                    showStatus(`Please fill in all fields. "${key}" is missing.`, 'error'); return;
+                }
+            }
+            showStatus('🔄 Submitting registration... This may take a moment.', 'info');
+            const result = await callAutomation('register', {
+                sessionId: sessionData.sessionId,
+                ...vehicleData
+            });
+            if (result.success && result.step === 'completed') {
+                showResult(result.data);
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+
+        // === TRANSFER OWNERSHIP FLOW ===
+        function showTransferStep1() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>🔄 Transfer Ownership - Step 1: Login</h3>
+                <p>Enter your email to log in as the <strong>current owner</strong>.</p>
+                <div class="form-group">
+                    <label>Your Email Address *</label>
+                    <input type="email" id="transfer_email" placeholder="e.g., current.owner@example.com">
+                </div>
+                <button class="btn" onclick="transferStep1()">Send OTP</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+        async function transferStep1() {
+            const email = document.getElementById('transfer_email').value.trim();
+            if (!email) {
+                showStatus('Please enter an email address', 'error'); return;
+            }
+            sessionData.email = email;
+            showStatus('🔄 Contacting VAHAN portal to send OTP...', 'info');
+            const result = await callAutomation('transfer', { email: email });
+            if (result.success && result.step === 'otp_sent') {
+                sessionData.sessionId = result.sessionId;
+                showTransferStep2();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showTransferStep2() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>🔄 Transfer Ownership - Step 2: Verify OTP</h3>
+                <p>An OTP has been sent to <strong>${sessionData.email}</strong>. Please enter it below.</p>
+                <div class="form-group">
+                    <label>Enter 6-Digit OTP *</label>
+                    <input type="text" id="transfer_otp" placeholder="123456" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
+                </div>
+                <button class="btn" onclick="transferStep2()">Verify OTP & Login</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+            document.getElementById('transfer_otp').focus();
+        }
+        async function transferStep2() {
+            const otp = document.getElementById('transfer_otp').value.trim();
+            if (!otp) {
+                showStatus('Please enter the OTP', 'error'); return;
+            }
+            showStatus('🔄 Verifying OTP and logging in...', 'info');
+            const result = await callAutomation('transfer', {
+                sessionId: sessionData.sessionId,
+                email: sessionData.email,
+                otp: otp
+            });
+            if (result.success && result.step === 'logged_in') {
+                showTransferStep3();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showTransferStep3() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>🔄 Transfer Ownership - Step 3: Find Vehicle</h3>
+                <p style="color: #4caf50;"><strong>Login successful!</strong></p>
+                <p>Enter the details of the vehicle you want to transfer.</p>
+                <div class="form-group">
+                    <label>Vehicle Registration Number *</label>
+                    <input type="text" id="transfer_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <select id="transfer_state">
+                        <option value="">-- Select State --</option>
+                        ${stateOptions}
+                    </select>
+                </div>
+                <button class="btn" onclick="transferStep3()">Find Vehicle</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+        async function transferStep3() {
+            const regNo = document.getElementById('transfer_regNo').value.trim().toUpperCase();
+            const state = document.getElementById('transfer_state').value;
+            if (!regNo || !state) {
+                showStatus('Please fill all fields', 'error'); return;
+            }
+            sessionData.regNo = regNo;
+            sessionData.state = state;
+            showStatus('🔄 Finding vehicle and getting search captcha...', 'info');
+            const result = await callAutomation('transfer', {
+                sessionId: sessionData.sessionId,
+                regNo: regNo,
+                state: state
+            });
+            if (result.success && result.step === 'search_captcha_sent') {
+                sessionData.captchaImageBase64 = result.captchaImageBase64;
+                showTransferStep4(result.captchaImageBase64);
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showTransferStep4(captchaImage) {
+            document.getElementById('formSection').innerHTML = `
+                <h3>🔄 Transfer Ownership - Step 4: Verify Search</h3>
+                <p><strong>Vehicle:</strong> ${sessionData.regNo}</p>
+                <div class="form-group">
+                    <label>Enter Search Captcha *</label>
+                    <div class="captcha-container">
+                        <img src="${captchaImage}" class="captcha-image" alt="Captcha">
+                    </div>
+                    <input type="text" id="transfer_search_captcha" placeholder="Enter captcha" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
+                </div>
+                <button class="btn" onclick="transferStep4()">Find Vehicle</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+            document.getElementById('transfer_search_captcha').focus();
+        }
+        async function transferStep4() {
+            const searchCaptcha = document.getElementById('transfer_search_captcha').value.trim().toUpperCase();
+            if (!searchCaptcha) {
+                showStatus('Please enter the search captcha', 'error'); return;
+            }
+            showStatus('🔄 Submitting search and opening transfer form...', 'info');
+            const result = await callAutomation('transfer', {
+                sessionId: sessionData.sessionId,
+                regNo: sessionData.regNo,
+                state: sessionData.state,
+                searchCaptcha: searchCaptcha
+            });
+            if (result.success && result.step === 'modal_open') {
+                showTransferStep5();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+        function showTransferStep5() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>🔄 Transfer Ownership - Step 5: New Owner Details</h3>
+                <p style="color: #4caf50;"><strong>Vehicle found!</strong> Please enter the new owner's details.</p>
+                <h4>New Owner Details</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>New Owner Name *</label><input type="text" id="trans_newOwnerName" placeholder="Full Name"></div>
+                    <div class="form-group"><label>Father/Husband Name *</label><input type="text" id="trans_newOwnerFather" placeholder="Father's Name"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Mobile Number *</label><input type="tel" id="trans_newOwnerMobile" placeholder="9876543210" pattern="[0-9]{10}"></div>
+                    <div class="form-group"><label>Email (for New Owner's Login) *</label><input type="email" id="trans_newOwnerEmail" placeholder="new.owner@example.com"></div>
+                </div>
+                <div class="form-group"><label>Address *</label><textarea id="trans_newOwnerAddress" rows="3" placeholder="New Owner's Full Address"></textarea></div>
+                <div class="form-group"><label>Sale Amount (₹) *</label><input type="number" id="trans_saleAmount" placeholder="500000"></div>
+                
+                <button class="btn" onclick="transferStep5()">Submit Transfer Application</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+        async function transferStep5() {
+            const transferData = {
+                newOwnerName: document.getElementById('trans_newOwnerName').value,
+                newOwnerFather: document.getElementById('trans_newOwnerFather').value,
+                newOwnerMobile: document.getElementById('trans_newOwnerMobile').value,
+                newOwnerEmail: document.getElementById('trans_newOwnerEmail').value,
+                newOwnerAddress: document.getElementById('trans_newOwnerAddress').value,
+                saleAmount: document.getElementById('trans_saleAmount').value
+            };
+            for (let key in transferData) {
+                if (!transferData[key]) {
+                    showStatus(`Please fill in all fields. "${key}" is missing.`, 'error'); return;
+                }
+            }
+            showStatus('🔄 Submitting final application... This may take a moment.', 'info');
+            const result = await callAutomation('transfer', {
+                sessionId: sessionData.sessionId,
+                ...transferData
+            });
+            if (result.success && result.step === 'completed') {
+                showResult(result.data);
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        
+        // === NEW: UPDATE CONTACTS FLOW ===
+        function showUpdateStep1() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>✏️ Update Contacts - Step 1: Login</h3>
+                <p>Enter your email to log in.</p>
+                <div class="form-group">
+                    <label>Your Email Address *</label>
+                    <input type="email" id="update_email" placeholder="e.g., user@example.com">
+                </div>
+                <button class="btn" onclick="updateStep1()">Send OTP</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+
+        async function updateStep1() {
+            const email = document.getElementById('update_email').value.trim();
+            if (!email) {
+                showStatus('Please enter an email address', 'error'); return;
+            }
+            sessionData.email = email;
+            showStatus('🔄 Contacting VAHAN portal to send OTP...', 'info');
+            const result = await callAutomation('update', { email: email });
+            if (result.success && result.step === 'otp_sent') {
+                sessionData.sessionId = result.sessionId;
+                showUpdateStep2();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        function showUpdateStep2() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>✏️ Update Contacts - Step 2: Verify OTP</h3>
+                <p>An OTP has been sent to <strong>${sessionData.email}</strong>. Please enter it below.</p>
+                <div class="form-group">
+                    <label>Enter 6-Digit OTP *</label>
+                    <input type="text" id="update_otp" placeholder="123456" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
+                </div>
+                <button class="btn" onclick="updateStep2()">Verify OTP & Login</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+            document.getElementById('update_otp').focus();
+        }
+
+        async function updateStep2() {
+            const otp = document.getElementById('update_otp').value.trim();
+            if (!otp) {
+                showStatus('Please enter the OTP', 'error'); return;
+            }
+            showStatus('🔄 Verifying OTP and logging in...', 'info');
+            const result = await callAutomation('update', {
+                sessionId: sessionData.sessionId,
+                email: sessionData.email,
+                otp: otp
+            });
+            if (result.success && result.step === 'logged_in') {
+                showUpdateStep3();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        function showUpdateStep3() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>✏️ Update Contacts - Step 3: Find Vehicle</h3>
+                <p style="color: #4caf50;"><strong>Login successful!</strong></p>
+                <p>Enter the details of the vehicle you want to update.</p>
+                <div class="form-group">
+                    <label>Vehicle Registration Number *</label>
+                    <input type="text" id="update_regNo" placeholder="e.g., DL01AB1234" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>State *</label>
+                    <select id="update_state">
+                        <option value="">-- Select State --</option>
+                        ${stateOptions}
+                    </select>
+                </div>
+                <button class="btn" onclick="updateStep3()">Find Vehicle</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+
+        async function updateStep3() {
+            const regNo = document.getElementById('update_regNo').value.trim().toUpperCase();
+            const state = document.getElementById('update_state').value;
+            if (!regNo || !state) {
+                showStatus('Please fill all fields', 'error'); return;
+            }
+            sessionData.regNo = regNo;
+            sessionData.state = state;
+            showStatus('🔄 Finding vehicle and getting search captcha...', 'info');
+            const result = await callAutomation('update', {
+                sessionId: sessionData.sessionId,
+                regNo: regNo,
+                state: state
+            });
+            if (result.success && result.step === 'search_captcha_sent') {
+                sessionData.captchaImageBase64 = result.captchaImageBase64;
+                showUpdateStep4(result.captchaImageBase64);
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        function showUpdateStep4(captchaImage) {
+            document.getElementById('formSection').innerHTML = `
+                <h3>✏️ Update Contacts - Step 4: Verify Search</h3>
+                <p><strong>Vehicle:</strong> ${sessionData.regNo}</p>
+                <div class="form-group">
+                    <label>Enter Search Captcha *</label>
+                    <div class="captcha-container">
+                        <img src="${captchaImage}" class="captcha-image" alt="Captcha">
+                    </div>
+                    <input type="text" id="update_search_captcha" placeholder="Enter captcha" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 5px;">
+                </div>
+                <button class="btn" onclick="updateStep4()">Find Vehicle</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+            document.getElementById('update_search_captcha').focus();
+        }
+
+        async function updateStep4() {
+            const searchCaptcha = document.getElementById('update_search_captcha').value.trim().toUpperCase();
+            if (!searchCaptcha) {
+                showStatus('Please enter the search captcha', 'error'); return;
+            }
+            showStatus('🔄 Submitting search and opening update form...', 'info');
+            const result = await callAutomation('update', {
+                sessionId: sessionData.sessionId,
+                regNo: sessionData.regNo,
+                state: sessionData.state,
+                searchCaptcha: searchCaptcha
+            });
+            if (result.success && result.step === 'modal_open') {
+                showUpdateStep5();
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        function showUpdateStep5() {
+            document.getElementById('formSection').innerHTML = `
+                <h3>✏️ Update Contacts - Step 5: New Details</h3>
+                <p style="color: #4caf50;"><strong>Vehicle found!</strong> Please enter the new details.</p>
+                <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                    Your login email (<strong>${sessionData.email}</strong>) will be used automatically.
+                </p>
+                <div class="form-group">
+                    <label>New Address *</label>
+                    <textarea id="update_newAddress" rows="3" placeholder="New Full Address"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>New Mobile Number *</label>
+                    <input type="tel" id="update_newMobile" placeholder="9876543210" pattern="[0-9]{10}">
+                </div>
+                
+                <button class="btn" onclick="updateStep5()">Submit Update</button>
+                <div class="status-message" id="statusMsg"></div>
+            `;
+        }
+
+        async function updateStep5() {
+            const updateData = {
+                newAddress: document.getElementById('update_newAddress').value,
+                newMobile: document.getElementById('update_newMobile').value,
+            };
+
+            for (let key in updateData) {
+                if (!updateData[key]) {
+                    showStatus(`Please fill in all fields. "${key}" is missing.`, 'error'); return;
+                }
+            }
+
+            showStatus('🔄 Submitting final update... This may take a moment.', 'info');
+            
+            const result = await callAutomation('update', {
+                sessionId: sessionData.sessionId,
+                ...updateData
+            });
+
+            if (result.success && result.step === 'completed') {
+                showResult(result.data);
+            } else {
+                showStatus('❌ Error: ' + result.message, 'error');
+            }
+        }
+
+        
+        // === HELPER FUNCTIONS ===
         async function callAutomation(taskType, data) {
             try {
                 const response = await fetch('http://localhost:5000/api/automation/execute', {
@@ -380,6 +809,66 @@
                 statusEl.textContent = message;
                 statusEl.className = 'status-message show ' + type;
             }
+        }
+
+        function showResult(data) {
+            let content;
+            if (selectedTask === 'register') {
+                content = `
+                    <h4>✅ Vehicle Registered Successfully!</h4>
+                    <table class="result-table">
+                        <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                        <tr><td>New Registration No.</td><td><strong>${data.registrationNumber}</strong></td></tr>
+                        <tr><td>Application ID</td><td>${data.applicationId}</td></tr>
+                        <tr><td>Owner Name</td><td>${data.ownerName}</td></tr>
+                        <tr><td>Model</td><td>${data.model}</td></tr>
+                    </table>
+                `;
+            } else if (selectedTask === 'transfer') {
+                 content = `
+                    <h4>✅ Ownership Transferred Successfully!</h4>
+                    <table class="result-table">
+                        <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                        <tr><td>Application ID</td><td><strong>${data.applicationId}</strong></td></tr>
+                        <tr><td>Vehicle Reg. No.</td><td>${data.vehicleRegNo}</td></tr>
+                        <tr><td>New Owner</td><td>${data.newOwner}</td></tr>
+                    </table>
+                `;
+            } else if (selectedTask === 'update') {
+                 content = `
+                    <h4>✅ Contact Details Updated Successfully!</h4>
+                    <table class="result-table">
+                        <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                        <tr><td>Application ID</td><td><strong>${data.applicationId}</strong></td></tr>
+                        <tr><td>Vehicle Reg. No.</td><td>${data.vehicleRegNo}</td></tr>
+                        <tr><td>New Address</td><td>${data.newAddress}</td></tr>
+                        <tr><td>New Mobile</td><td>${data.newMobile}</td></tr>
+                    </table>
+                `;
+            } else {
+                // Fallback for Search Task
+                 content = `
+                    <h4>✅ Vehicle Details Retrieved Successfully</h4>
+                    <table class="result-table">
+                        <tr><td>Registration Number</td><td><strong>${data.regNo}</strong></td></tr>
+                        <tr><td>Owner Name</td><td><strong>${data.ownerName}</strong></td></tr>
+                        <tr><td>Maker/Model</td><td><strong>${data.model}</strong></td></tr>
+                        <tr><td>RTO</td><td>${data.rto}</td></tr>
+                        <tr><td>Registration Date</td><td>${data.regDate}</td></tr>
+                        <tr><td>Vehicle Class</td><td>${data.class}</td></tr>
+                        <tr><td>Fuel Type</td><td>${data.fuel}</td></tr>
+                        <tr><td>Insurance Upto</td><td>${data.insUpto}</td></tr>
+                        <tr><td>Address</td><td>${data.address}</td></tr>
+                    </table>
+                `;
+            }
+
+            document.getElementById('formSection').innerHTML = `
+                <div class="result-box">
+                    ${content}
+                </div>
+                <button class="btn" onclick="location.reload()">🔄 Start New Task</button>
+            `;
         }
     </script>
 </body>

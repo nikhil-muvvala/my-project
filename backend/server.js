@@ -15,9 +15,7 @@ connectDB();
 const app = express();
 
 // Middleware
-// Enable Cross-Origin Resource Sharing (so our frontend can talk to our backend)
 app.use(cors()); 
-// Allow the server to accept JSON data
 app.use(express.json()); 
 
 // Serve static files from 'frontend' directory
@@ -25,7 +23,8 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 // A simple test route
 app.get('/', (req, res) => {
-    res.send('VAHAN Backend API is running...');
+    // MODIFIED: Redirect base URL to the task portal
+    res.redirect('/task-portal');
 });
 
 // Use our API routes
@@ -44,5 +43,8 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
     console.log(`🤖 Automation Portal: http://localhost:${PORT}/task-portal`);
-    console.log(`🚗 VAHAN Portal: http://localhost:3000`);
+    
+    // --- THIS IS THE FIX ---
+    // The VAHAN portal is also on port 5000, not 3000
+    console.log(`🚗 VAHAN Portal (Replica): http://localhost:${PORT}`);
 });
