@@ -35,7 +35,7 @@ async function searchVehicle(data) {
             activeSessions.set(newSessionId, { browser, context, page });
             
             // Navigate to your VAHAN portal
-            await page.goto('http://localhost:3000', { 
+            await page.goto('http://localhost:5000', { 
                 waitUntil: 'networkidle',
                 timeout: 30000 
             });
