@@ -1,12 +1,20 @@
+// frontend/task-portal.js
+
 // --- CHATBOT STATE ---
 let currentTaskState = 'idle'; 
 let sessionData = {}; 
+// Get the Portal User (who is logged in) - This is just the basic info
+let currentUser = JSON.parse(localStorage.getItem('portalUser')) || {};
 
 // --- HTML ELEMENTS ---
 const chatLog = document.getElementById('chat-log');
 const chatForm = document.getElementById('chat-form');
 const inputEl = document.getElementById('user-input');
 const statusBar = document.getElementById('status-bar');
+
+// --- NEW: Add listeners for new buttons ---
+const editProfileBtn = document.getElementById('editProfileBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
 // --- REGEX HELPERS ---
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,9 +50,50 @@ const stateNameMap = indianStates.reduce((acc, state) => {
 
 // --- EVENT LISTENER ---
 chatForm.addEventListener('submit', handleUserInput);
-window.onload = () => {
-    addMessageToLog("Hello! I am your VAHAN portal assistant. How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to transfer ownership</b>", 'bot');
+editProfileBtn.addEventListener('click', () => {
+    if (currentTaskState !== 'idle' && currentTaskState !== 'form_pending') {
+        addMessageToLog('Please wait for the current task to finish before editing your profile.', 'error');
+        return;
+    }
+    addMessageToLog('OK, I can help you update your profile. Please fill out the form below.', 'bot');
+    showProfileForm();
+    currentTaskState = 'form_pending';
+});
+logoutBtn.addEventListener('click', handleLogout);
+
+// --- NEW: Fetch full user profile on load ---
+window.onload = async () => {
+    addMessageToLog(`Hello, <b>${currentUser.name || 'user'}</b>! How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to transfer ownership</b>`, 'bot');
+    // Go get the user's full details (like address/phone) to pre-fill forms
+    await fetchCurrentUserProfile();
 }
+
+async function fetchCurrentUserProfile() {
+    try {
+        const token = localStorage.getItem('portalUserToken');
+        const res = await fetch('/api/portal-auth/profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            // Update the global currentUser object with full details
+            currentUser = data.user; 
+            localStorage.setItem('portalUser', JSON.stringify({
+                id: data.user._id,
+                name: data.user.username,
+                email: data.user.email
+            })); // Keep the simple one in storage
+            console.log('Full user profile loaded:', currentUser);
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        console.error('Error fetching full profile:', error);
+        addMessageToLog('Could not fetch your profile details, forms may not pre-fill.', 'error');
+    }
+}
+// --- END NEW FUNCTION ---
+
 
 // --- 1. THE BRAIN: Handles all user input ---
 async function handleUserInput(e) {
@@ -93,18 +142,21 @@ async function handleNewRequest(aiResponse) {
             break;
 
         case 'register':
-            currentTaskState = 'awaiting_register_email';
-            addMessageToLog('OK, starting new vehicle registration. What is your email address?', 'bot');
+            // --- MODIFIED: Ask for email confirmation ---
+            currentTaskState = 'awaiting_register_email_confirm';
+            addMessageToLog(`OK, starting new vehicle registration.<br><br>Should I use your login email (<b>${currentUser.email}</b>) for the automation? <br>Type <b>yes</b> or enter a <b>different email</b>.`, 'bot');
             break;
 
         case 'transfer':
-            currentTaskState = 'awaiting_transfer_email';
-            addMessageToLog('OK, starting ownership transfer. What is your email address (as the <b>current owner</b>)?', 'bot');
+            // --- MODIFIED: Ask for email confirmation ---
+            currentTaskState = 'awaiting_transfer_email_confirm';
+            addMessageToLog(`OK, starting ownership transfer.<br><br>Should I use your login email (<b>${currentUser.email}</b>) as the current owner? <br>Type <b>yes</b> or enter the <b>owner's email</b>.`, 'bot');
             break;
 
         case 'update':
-            currentTaskState = 'awaiting_update_email';
-            addMessageToLog('OK, starting contact update. What is your email address?', 'bot');
+            // --- MODIFIED: Ask for email confirmation ---
+            currentTaskState = 'awaiting_update_email_confirm';
+            addMessageToLog(`OK, starting contact update.<br><br>Should I use your login email (<b>${currentUser.email}</b>) for the automation? <br>Type <b>yes</b> or enter a <b>different email</b>.`, 'bot');
             break;
 
         case 'unknown':
@@ -114,8 +166,9 @@ async function handleNewRequest(aiResponse) {
     }
 }
 
-// --- 3. THE STATE MACHINE ---
+// --- 3. THE STATE MACHINE (This handles the multi-step conversations) ---
 async function handleMidTaskInput(userInput) {
+    
     switch (currentTaskState) {
         
         // --- SEARCH FLOW ---
@@ -128,13 +181,17 @@ async function handleMidTaskInput(userInput) {
             break;
         
         // --- REGISTRATION FLOW ---
-        case 'awaiting_register_email':
-            if (!emailRegex.test(userInput)) {
-                addMessageToLog("That doesn't look like a valid email. Please try again.", 'bot');
+        case 'awaiting_register_email_confirm': // NEW STEP
+            if (userInput.toLowerCase() === 'yes') {
+                sessionData = { email: currentUser.email };
+                addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
+            } else if (emailRegex.test(userInput)) {
+                sessionData = { email: userInput };
+                addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
+            } else {
+                addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return; 
             }
-            sessionData = { email: userInput };
-            addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
             const regResult1 = await callAutomation('register', sessionData); 
             sessionData.sessionId = regResult1.sessionId;
             currentTaskState = 'awaiting_register_otp';
@@ -151,13 +208,17 @@ async function handleMidTaskInput(userInput) {
             break;
             
         // --- TRANSFER FLOW ---
-        case 'awaiting_transfer_email':
-            if (!emailRegex.test(userInput)) {
-                addMessageToLog("That doesn't look like a valid email. Please try again.", 'bot');
+        case 'awaiting_transfer_email_confirm': // NEW STEP
+            if (userInput.toLowerCase() === 'yes') {
+                sessionData = { email: currentUser.email };
+                addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
+            } else if (emailRegex.test(userInput)) {
+                sessionData = { email: userInput };
+                addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
+            } else {
+                addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return;
             }
-            sessionData = { email: userInput };
-            addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
             const transResult1 = await callAutomation('transfer', sessionData);
             sessionData.sessionId = transResult1.sessionId;
             currentTaskState = 'awaiting_transfer_otp';
@@ -197,13 +258,17 @@ async function handleMidTaskInput(userInput) {
             break;
 
         // --- UPDATE FLOW ---
-        case 'awaiting_update_email':
-             if (!emailRegex.test(userInput)) {
-                addMessageToLog("That doesn't look like a valid email. Please try again.", 'bot');
+        case 'awaiting_update_email_confirm': // NEW STEP
+             if (userInput.toLowerCase() === 'yes') {
+                sessionData = { email: currentUser.email };
+                addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
+            } else if (emailRegex.test(userInput)) {
+                sessionData = { email: userInput };
+                addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
+            } else {
+                addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return;
             }
-            sessionData = { email: userInput };
-            addMessageToLog('Got it. Sending OTP to ' + userInput + '...', 'bot');
             const updateResult1 = await callAutomation('update', sessionData);
             sessionData.sessionId = updateResult1.sessionId;
             currentTaskState = 'awaiting_update_otp';
@@ -251,19 +316,25 @@ async function handleMidTaskInput(userInput) {
             resetChat();
     }
 }
-
+        
 // --- 4. FORM DISPLAY & SUBMIT FUNCTIONS ---
+
 function showRegisterForm() {
+    // --- MODIFIED: Pre-fills with full currentUser profile data ---
     const formHtml = `
         <div class="chat-form-container">
-            <h4>📋 Vehicle Registration - Step 3: Vehicle Details</h4>
+            <h4>📋 New Vehicle Registration</h4>
+            <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+                Your automation email is <strong>${sessionData.email}</strong>.
+                Your portal user <strong>${currentUser.username}</strong> is logged in.
+            </p>
             <h4>Owner Details</h4>
             <div class="form-row">
-                <div class="form-group"><label>Owner Name *</label><input type="text" id="reg_ownerName" placeholder="Full Name"></div>
+                <div class="form-group"><label>Owner Name *</label><input type="text" id="reg_ownerName" value="${currentUser.username || ''}"></div>
                 <div class="form-group"><label>Father/Husband Name *</label><input type="text" id="reg_fatherName" placeholder="Father's Name"></div>
             </div>
-            <div class="form-group"><label>Mobile Number *</label><input type="tel" id="reg_mobile" placeholder="9876543210" pattern="[0-9]{10}"></div>
-            <div class="form-group"><label>Address *</label><textarea id="reg_address" rows="3" placeholder="Full Address"></textarea></div>
+            <div class="form-group"><label>Mobile Number *</label><input type="tel" id="reg_mobile" value="${currentUser.phoneno || ''}" pattern="[0-9]{10}"></div>
+            <div class="form-group"><label>Address *</label><textarea id="reg_address" rows="3" placeholder="Full Address">${currentUser.address || ''}</textarea></div>
             <h4>Vehicle Details</h4>
             <div class="form-row">
                 <div class="form-group"><label>Vehicle Class *</label><input type="text" id="reg_vehicleClass" placeholder="e.g., Motor Car"></div>
@@ -286,7 +357,12 @@ function showRegisterForm() {
 
 async function handleRegisterSubmit() {
     setThinking(true);
+    // --- BUG FIX: Added email and otp to the payload ---
     const vehicleData = {
+        sessionId: sessionData.sessionId,
+        email: sessionData.email,
+        otp: sessionData.otp,
+        // --- End of Bug Fix ---
         ownerName: document.getElementById('reg_ownerName').value,
         fatherName: document.getElementById('reg_fatherName').value,
         mobile: document.getElementById('reg_mobile').value,
@@ -299,7 +375,7 @@ async function handleRegisterSubmit() {
         rto: document.getElementById('reg_rto').value
     };
     for (let key in vehicleData) {
-        if (!vehicleData[key]) {
+        if (!vehicleData[key] && key !== 'sessionId') { 
             document.getElementById('formStatusMsg').textContent = `Please fill in all fields. "${key}" is missing.`;
             document.getElementById('formStatusMsg').className = 'status-message show error';
             setThinking(false);
@@ -308,10 +384,7 @@ async function handleRegisterSubmit() {
     }
     addMessageToLog('Got it. Submitting registration...', 'bot');
     try {
-        const result = await callAutomation('register', {
-            sessionId: sessionData.sessionId,
-            ...vehicleData
-        });
+        const result = await callAutomation('register', vehicleData);
         showResult(result.data, 'register');
     } catch (error) {
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
@@ -336,7 +409,6 @@ function showTransferForm() {
             </div>
             <div class="form-group"><label>Address *</label><textarea id="trans_newOwnerAddress" rows="3" placeholder="New Owner's Full Address"></textarea></div>
             <div class="form-group"><label>Sale Amount (₹) *</label><input type="number" id="trans_saleAmount" placeholder="500000"></div>
-            <button class="btn" onclick="
             <button class="btn" onclick="handleTransferSubmit()">Submit Transfer Application</button>
             <div class="status-message" id="formStatusMsg"></div>
         </div>
@@ -346,7 +418,15 @@ function showTransferForm() {
 
 async function handleTransferSubmit() {
     setThinking(true);
+    // --- BUG FIX: Added email, otp, regNo, state, and searchCaptcha to the payload ---
     const transferData = {
+        sessionId: sessionData.sessionId,
+        email: sessionData.email,
+        otp: sessionData.otp,
+        regNo: sessionData.regNo,
+        state: sessionData.state,
+        searchCaptcha: sessionData.searchCaptcha,
+        // --- End of Bug Fix ---
         newOwnerName: document.getElementById('trans_newOwnerName').value,
         newOwnerFather: document.getElementById('trans_newOwnerFather').value,
         newOwnerMobile: document.getElementById('trans_newOwnerMobile').value,
@@ -355,7 +435,7 @@ async function handleTransferSubmit() {
         saleAmount: document.getElementById('trans_saleAmount').value
     };
     for (let key in transferData) {
-        if (!transferData[key]) {
+        if (!transferData[key] && key !== 'sessionId') {
             document.getElementById('formStatusMsg').textContent = `Please fill in all fields. "${key}" is missing.`;
             document.getElementById('formStatusMsg').className = 'status-message show error';
             setThinking(false);
@@ -364,10 +444,7 @@ async function handleTransferSubmit() {
     }
     addMessageToLog('Got it. Submitting final application...', 'bot');
     try {
-        const result = await callAutomation('transfer', {
-            sessionId: sessionData.sessionId,
-            ...transferData
-        });
+        const result = await callAutomation('transfer', transferData);
         showResult(result.data, 'transfer');
     } catch (error) {
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
@@ -376,13 +453,13 @@ async function handleTransferSubmit() {
         setThinking(false);
     }
 }
-
+        
 function showUpdateForm() {
     const formHtml = `
         <div class="chat-form-container">
             <h4>✏️ Update Contacts - Step 5: New Details</h4>
             <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-                Your login email (<strong>${sessionData.email}</strong>) will be used automatically.
+                Your automation login email (<strong>${sessionData.email}</strong>) will be used.
             </p>
             <div class="form-group">
                 <label>New Address *</label>
@@ -401,12 +478,20 @@ function showUpdateForm() {
 
 async function handleUpdateSubmit() {
     setThinking(true);
+    // --- BUG FIX: Added email, otp, regNo, state, and searchCaptcha to the payload ---
     const updateData = {
+        sessionId: sessionData.sessionId,
+        email: sessionData.email,
+        otp: sessionData.otp,
+        regNo: sessionData.regNo,
+        state: sessionData.state,
+        searchCaptcha: sessionData.searchCaptcha,
+        // --- End of Bug Fix ---
         newAddress: document.getElementById('update_newAddress').value,
         newMobile: document.getElementById('update_newMobile').value,
     };
     for (let key in updateData) {
-        if (!updateData[key]) {
+        if (!updateData[key] && key !== 'sessionId') {
             document.getElementById('formStatusMsg').textContent = `Please fill in all fields. "${key}" is missing.`;
             document.getElementById('formStatusMsg').className = 'status-message show error';
             setThinking(false);
@@ -415,10 +500,7 @@ async function handleUpdateSubmit() {
     }
     addMessageToLog('Got it. Submitting final update...', 'bot');
     try {
-        const result = await callAutomation('update', {
-            sessionId: sessionData.sessionId,
-            ...updateData
-        });
+        const result = await callAutomation('update', updateData);
         showResult(result.data, 'update');
     } catch (error) {
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
@@ -428,9 +510,100 @@ async function handleUpdateSubmit() {
     }
 }
 
-// --- 5. HELPER FUNCTIONS ---
+// --- NEW: PROFILE EDITING FUNCTIONS ---
+async function showProfileForm() {
+    setThinking(true);
+    try {
+        const token = localStorage.getItem('portalUserToken');
+        const res = await fetch('/api/portal-auth/profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        
+        const user = data.user;
+        currentUser.name = user.username; // Update global name
 
-// --- THIS FUNCTION WAS ADDED IN YOUR CODE ---
+        const formHtml = `
+            <div class="chat-form-container">
+                <h4>✏️ Edit Your Profile</h4>
+                <p>Change your details below and click "Save Changes".</p>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="profile_username" value="${user.username}">
+                </div>
+                <div class="form-group">
+                    <label>Email (Read-only)</label>
+                    <input type="email" id="profile_email" value="${user.email}" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="profile_phoneno" value="${user.phoneno}">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea id="profile_address" rows="3">${user.address}</textarea>
+                </div>
+                <button class="btn" onclick="handleProfileSubmit()">Save Changes</button>
+                <div class="status-message" id="formStatusMsg"></div>
+            </div>
+        `;
+        addMessageToLog(formHtml, 'bot');
+    } catch (error) {
+        addMessageToLog(`❌ Error fetching profile: ${error.message}`, 'error');
+    } finally {
+        setThinking(false);
+    }
+}
+
+async function handleProfileSubmit() {
+    setThinking(true);
+    const profileData = {
+        username: document.getElementById('profile_username').value,
+        phoneno: document.getElementById('profile_phoneno').value,
+        address: document.getElementById('profile_address').value
+    };
+
+    try {
+        const token = localStorage.getItem('portalUserToken');
+        const res = await fetch('/api/portal-auth/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(profileData)
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        localStorage.setItem('portalUser', JSON.stringify(data.user));
+        currentUser = data.user; 
+
+        addMessageToLog('✅ Your profile has been updated successfully!', 'bot');
+    } catch (error) {
+        addMessageToLog(`❌ Error updating profile: ${error.message}`, 'error');
+    } finally {
+        resetChat();
+        setThinking(false);
+    }
+}
+
+
+// --- NEW: LOGOUT FUNCTION ---
+function handleLogout() {
+    localStorage.removeItem('portalUserToken');
+    localStorage.removeItem('portalUser');
+    addMessageToLog('You have been logged out. Redirecting...', 'bot');
+    setTimeout(() => {
+        window.location.href = '/login.html';
+    }, 1500);
+}
+
+
+// --- 5. HELPER FUNCTIONS ---
+        
+// Calls your /api/brain endpoint
 async function callBrain(text) {
     try {
         const response = await fetch('http://localhost:5000/api/brain/process', {
@@ -451,11 +624,15 @@ async function callBrain(text) {
     }
 }
 
-// AUTOMATION CALLER
+// Calls your /api/automation endpoint
 async function callAutomation(taskType, data) {
+    const token = localStorage.getItem('portalUserToken'); 
     const response = await fetch('http://localhost:5000/api/automation/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Send portal token for security
+        },
         body: JSON.stringify({ taskType, ...data })
     });
 
@@ -524,7 +701,7 @@ function showResult(data, taskType) {
          content = `
             <table class="result-table">
                 <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
-                <tr><td>Application ID</td><td><strong>${data.applicationId}</td></tr>
+                <tr><td>Application ID</td><td><strong>${data.applicationId}</strong></td></tr>
                 <tr><td>New Address</td><td>${data.newAddress}</td></tr>
             </table>
         `;

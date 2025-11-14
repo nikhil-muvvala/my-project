@@ -3,18 +3,10 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-// We re-use the same active sessions map
 const activeSessions = new Map();
 
-// Helper to manage sessions
-function getActiveSession(sessionId) {
-    return activeSessions.get(sessionId);
-}
-
-function setActiveSession(sessionId, sessionData) {
-    activeSessions.set(sessionId, sessionData);
-}
-
+function getActiveSession(sessionId) { return activeSessions.get(sessionId); }
+function setActiveSession(sessionId, sessionData) { activeSessions.set(sessionId, sessionData); }
 function removeActiveSession(sessionId) {
     const session = activeSessions.get(sessionId);
     if (session) {
@@ -34,7 +26,9 @@ async function updateContacts(data) {
             const context = await browser.newContext();
             const page = await context.newPage();
             
-            await page.goto('http://localhost:5000', { waitUntil: 'networkidle' });
+            // --- THIS IS THE FIX ---
+            await page.goto('http://localhost:5000/index.html', { waitUntil: 'networkidle' });
+            // --- END OF FIX ---
             
             await page.click('#loginBtn');
             await page.waitForSelector('#loginModal.show', { timeout: 5000 });
@@ -64,7 +58,6 @@ async function updateContacts(data) {
 
             await page.fill('#loginOTP', otp);
             await page.click('#verifyOtpBtn');
-            
             await page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 });
             
             console.log('✅ Login Successful. Awaiting vehicle details.');
@@ -83,7 +76,6 @@ async function updateContacts(data) {
             if (!session) throw new Error('Session expired.');
             const { page } = session;
             
-            // Click "Home" to make sure search card is visible
             await page.click('a[onclick*="showSection(\'home\')"]');
             await page.waitForSelector('#searchCard', { state: 'visible', timeout: 5000 });
 
@@ -118,7 +110,6 @@ async function updateContacts(data) {
             if (!session) throw new Error('Session expired.');
             const { page } = session;
 
-            // Ensure search card is visible
             const isSearchCardVisible = await page.isVisible('#searchCard');
             if (!isSearchCardVisible) {
                 await page.click('a[onclick*="showSection(\'home\')"]');
@@ -128,8 +119,11 @@ async function updateContacts(data) {
             }
 
             await page.fill('#captchaInput', searchCaptcha);
+            await page.evaluate((captcha) => {
+                window.currentCaptcha = captcha;
+            }, searchCaptcha);
+
             await page.click('button[type="submit"]');
-            
             await page.waitForSelector('#resultCard', { state: 'visible', timeout: 15000 });
             console.log('✅ Vehicle search successful.');
 
@@ -154,17 +148,12 @@ async function updateContacts(data) {
             console.log('✏️ Step 5 (Update): Submitting final details...');
             const session = getActiveSession(sessionId);
             if (!session) throw new Error('Session expired.');
-            const { browser, page, email } = session; // Get the logged-in email from the session
+            const { browser, page, email } = session; 
 
-            // Fill update details
             await page.fill('#addr_newAddress', updateDetails.newAddress);
             await page.fill('#addr_newMobile', updateDetails.newMobile);
-            
-            // --- THIS IS YOUR REQUESTED CHANGE ---
-            // Automatically fill the email with the logged-in user's email
             await page.fill('#addr_newEmail', email); 
             console.log(`✅ Filled form with new details and auto-filled email: ${email}`);
-            // --- END OF CHANGE ---
             
             const checkboxes = await page.$$('#updateDetailsModal input[type="checkbox"]');
             for (const checkbox of checkboxes) {
@@ -176,7 +165,6 @@ async function updateContacts(data) {
             await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
             console.log('✅ Receipt modal opened');
             
-            // Extract result
             const receiptText = await page.textContent('#receiptContentOutput');
             const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
             
@@ -190,7 +178,6 @@ async function updateContacts(data) {
             
             console.log('✅ Update completed:', result.applicationId);
             
-            // Task is complete, clean up
             removeActiveSession(sessionId);
             
             return {
@@ -223,7 +210,6 @@ async function updateContacts(data) {
     }
 }
 
-// Re-using the cleanup logic
 function cleanupOldSessions() {
     const now = Date.now();
     const maxAge = 10 * 60 * 1000; // 10 minutes

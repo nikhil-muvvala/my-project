@@ -1,3 +1,5 @@
+/* frontend/task-portal-styles.css */
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,7 +22,41 @@ body {
     flex-direction: column;
     height: 90vh;
 }
-h1 { color: #1a237e; text-align: center; margin-bottom: 20px; font-size: 24px; }
+
+/* --- NEW HEADER STYLES --- */
+.portal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+h1 { 
+    color: #1a237e; 
+    text-align: left; 
+    font-size: 24px; 
+    margin: 0;
+}
+.header-icons {
+    display: flex;
+    gap: 10px;
+}
+.icon-btn {
+    background: #f0f2f5;
+    border: 2px solid #ddd;
+    color: #333;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+.icon-btn:hover {
+    background: #e9ecef;
+    border-color: #1a237e;
+    color: #1a237e;
+}
+/* --- END OF NEW HEADER STYLES --- */
 
 #chat-log {
     flex-grow: 1;
@@ -187,3 +223,41 @@ h1 { color: #1a237e; text-align: center; margin-bottom: 20px; font-size: 24px; }
     0%, 60%, 100% { transform: translateY(0); }
     30% { transform: translateY(-4px); }
 }
+/* frontend/task-portal-styles.css */
+/* ... (all your existing CSS from the file you provided) ... */
+/* (Keep all your existing styles from line 1 to 175) */
+
+/* --- ADD THESE NEW STYLES AT THE END --- */
+.portal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+h1 { 
+    color: #1a237e; 
+    text-align: left; 
+    font-size: 24px; 
+    margin: 0;
+}
+.header-icons {
+    display: flex;
+    gap: 10px;
+}
+.icon-btn {
+    background: #f0f2f5;
+    border: 2px solid #ddd;
+    color: #333;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+.icon-btn:hover {
+    background: #e9ecef;
+    border-color: #1a237e;
+    color: #1a237e;
+}
+/* --- END OF NEW STYLES --- */

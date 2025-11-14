@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Automation Portal</title>
+    <link rel="stylesheet" href="auth-styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <form id="register-form">
+            <h1>Create Account</h1>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" required minlength="6">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phoneno">Phone Number</label>
+                    <input type="tel" id="phoneno" required>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" required>
+                        <option value="">-- Select --</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn" id="register-btn">Register</button>
+            <p class="auth-switch">Already have an account? <a href="/login.html">Login here</a></p>
+            <div class="status-message" id="statusMsg"></div>
+        </form>
+    </div>
+
+    <script>
+        const registerForm = document.getElementById('register-form');
+        const statusMsg = document.getElementById('statusMsg');
+        const registerBtn = document.getElementById('register-btn');
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registering...';
+            statusMsg.textContent = '';
+            statusMsg.className = 'status-message';
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // --- NEW: Check for password match ---
+            if (password !== confirmPassword) {
+                statusMsg.textContent = 'Passwords do not match!';
+                statusMsg.className = 'status-message show error';
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register';
+                return;
+            }
+            // --- END OF NEW ---
+
+            try {
+                const res = await fetch('/api/portal-auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        email: document.getElementById('email').value,
+                        password: password,
+                        phoneno: document.getElementById('phoneno').value,
+                        gender: document.getElementById('gender').value,
+                        address: document.getElementById('address').value
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Registration failed');
+                }
+
+                // --- MODIFIED: Log in immediately ---
+                statusMsg.textContent = 'Success! Logging you in...';
+                statusMsg.className = 'status-message show success';
+                
+                // Save the token and user info from the registration response
+                localStorage.setItem('portalUserToken', data.accessToken);
+                localStorage.setItem('portalUser', JSON.stringify(data.user));
+                
+                // Redirect directly to the portal
+                setTimeout(() => {
+                    window.location.href = '/task-portal.html';
+                }, 1500);
+                // --- END OF MODIFICATION ---
+
+            } catch (err) {
+                statusMsg.textContent = err.message;
+                statusMsg.className = 'status-message show error';
+            } finally {
+                // Keep button disabled on success, re-enable on error
+                if (statusMsg.className.includes('error')) {
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'Register';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

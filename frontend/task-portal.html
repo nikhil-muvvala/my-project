@@ -8,8 +8,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚗 VAHAN Automation Portal</h1>
         
+        <div class="portal-header">
+            <h1>🚗 VAHAN Automation Portal</h1>
+            <div class="header-icons">
+                <button id="editProfileBtn" class="icon-btn" title="Edit Profile">✏️</button>
+                <button id="logoutBtn" class="icon-btn" title="Logout">Logout</button>
+            </div>
+        </div>
         <div id="chat-log"></div>
         <div id="status-bar"></div>
 
@@ -19,6 +25,8 @@
         </form>
     </div>
 
+    <script src="task-portal-auth.js"></script>
+    
     <script src="task-portal.js"></script>
 </body>
 </html>

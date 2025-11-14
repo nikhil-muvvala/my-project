@@ -15,9 +15,8 @@ async function searchVehicle(data) {
         if (!captcha) {
             console.log('🔄 Step 1: Opening VAHAN portal and fetching captcha...');
             
-            // Launch headless browser
             const browser = await chromium.launch({
-                headless: true, // This makes it invisible
+                headless: true, 
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
             });
             
@@ -27,48 +26,34 @@ async function searchVehicle(data) {
             });
             
             const page = await context.newPage();
-            
-            // Generate unique session ID
             const newSessionId = `search_${Date.now()}`;
-            
-            // Store the browser, context, and page for next step
             activeSessions.set(newSessionId, { browser, context, page });
             
-            // Navigate to your VAHAN portal
-            await page.goto('http://localhost:5000', { 
+            // --- THIS IS THE FIX ---
+            await page.goto('http://localhost:5000/index.html', { 
                 waitUntil: 'networkidle',
                 timeout: 30000 
             });
+            // --- END OF FIX ---
             
             console.log('✅ Page loaded successfully');
             
-            // Wait for the search form to be visible
             await page.waitForSelector('#regNumber', { timeout: 10000 });
-            
-            // Fill in the registration number
             await page.fill('#regNumber', regNo.toUpperCase());
-            
-            // Select the state
             await page.selectOption('#stateSelect', state);
-            
             console.log(`✅ Filled form with RegNo: ${regNo}, State: ${state}`);
             
-            // Wait for captcha to be generated
             await page.waitForSelector('#captchaDisplay', { timeout: 5000 });
-            await page.waitForTimeout(1000); // Give time for captcha to render
+            await page.waitForTimeout(1000); 
             
-            // Take screenshot of the captcha element
             const captchaElement = await page.$('#captchaDisplay');
-            const screenshotPath = path.join(__dirname, `../temp/captcha_${newSessionId}.png`);
-            
-            // Ensure temp directory exists
-            const tempDir = path.join(__dirname, '../temp');
-            if (!fs.existsSync(tempDir)) {
-                fs.mkdirSync(tempDir, { recursive: true });
+            const screenshotsDir = path.join(__dirname, 'screenshots');
+            if (!fs.existsSync(screenshotsDir)) {
+                fs.mkdirSync(screenshotsDir, { recursive: true });
             }
+            const screenshotPath = path.join(screenshotsDir, `captcha_${newSessionId}.png`);
             
             await captchaElement.screenshot({ path: screenshotPath });
-            
             console.log('✅ Captcha screenshot saved');
             
             return {
@@ -83,44 +68,37 @@ async function searchVehicle(data) {
         // Step 2: Submit form with captcha and get results
         else {
             console.log('🔄 Step 2: Submitting form with captcha...');
-            
-            // Retrieve the stored session
             const session = activeSessions.get(sessionId);
-            
             if (!session) {
                 throw new Error('Session expired. Please start again.');
             }
             
             const { browser, context, page } = session;
             
-            // Fill in the captcha
             await page.fill('#captchaInput', captcha);
-            
             console.log(`✅ Filled captcha: ${captcha}`);
+
+            // This injects the correct answer, bypassing the replica's JS check
+            await page.evaluate((captcha) => {
+                window.currentCaptcha = captcha;
+            }, captcha);
             
-            // Click the search button
             await page.click('button[type="submit"]');
-            
             console.log('✅ Form submitted, waiting for results...');
             
-            // Wait for result card to appear (with longer timeout)
             await page.waitForSelector('#resultCard', { 
                 state: 'visible',
                 timeout: 15000 
             });
-            
             console.log('✅ Results loaded');
             
-            // Wait a bit for data to populate
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(1000); 
             
-            // Extract vehicle details from the page
             const vehicleData = await page.evaluate(() => {
                 const getData = (id) => {
                     const el = document.getElementById(id);
                     return el ? el.textContent.trim() : '-';
                 };
-                
                 return {
                     regNo: getData('res_regNo'),
                     regDate: getData('res_regDate'),
@@ -144,24 +122,22 @@ async function searchVehicle(data) {
                     pucUpto: getData('res_pucUpto'),
                     pucStatus: getData('res_pucStatus'),
                     taxUpto: getData('res_taxUpto'),
-                    ownerName: getData('res_ownerName'),
-                    fatherName: getData('res_fatherName'),
-                    mobile: getData('res_mobile'),
-                    email: getData('res_email'),
-                    address: getData('res_address'),
-                    permAddress: getData('res_permAddress'),
+                    ownerName: getData('res_ownerName_header'),
+                    fatherName: getData('res_fatherName_header'),
+                    mobile: getData('res_mobile_display'),
+                    email: getData('res_email_display'),
+                    address: getData('res_address_display'),
+                    permAddress: getData('res_permAddress_display'),
                     financer: getData('res_financer')
                 };
             });
             
             console.log('✅ Vehicle data extracted');
             
-            // Clean up - close browser and remove session
             await browser.close();
             activeSessions.delete(sessionId);
             
-            // Delete the captcha screenshot
-            const screenshotPath = path.join(__dirname, `../temp/captcha_${sessionId}.png`);
+            const screenshotPath = path.join(__dirname, 'screenshots', `captcha_${sessionId}.png`);
             if (fs.existsSync(screenshotPath)) {
                 fs.unlinkSync(screenshotPath);
             }
@@ -177,11 +153,18 @@ async function searchVehicle(data) {
     } catch (error) {
         console.error('❌ Automation Error:', error.message);
         
-        // Clean up on error
         if (sessionId && activeSessions.has(sessionId)) {
             const session = activeSessions.get(sessionId);
             await session.browser.close().catch(() => {});
             activeSessions.delete(sessionId);
+        }
+
+        if (error.message.includes('page.waitForSelector: Timeout')) {
+            return {
+                success: false,
+                message: 'Automation failed: Invalid captcha or vehicle not found in database. Please try again.',
+                data: null
+            };
         }
         
         return {
@@ -192,7 +175,6 @@ async function searchVehicle(data) {
     }
 }
 
-// Cleanup function to close abandoned sessions (call this periodically)
 function cleanupOldSessions() {
     const now = Date.now();
     const maxAge = 10 * 60 * 1000; // 10 minutes
@@ -206,8 +188,6 @@ function cleanupOldSessions() {
         }
     }
 }
-
-// Run cleanup every 5 minutes
 setInterval(cleanupOldSessions, 5 * 60 * 1000);
 
 module.exports = searchVehicle;

@@ -3,18 +3,10 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-// We re-use the same active sessions map
 const activeSessions = new Map();
 
-// Helper to manage sessions
-function getActiveSession(sessionId) {
-    return activeSessions.get(sessionId);
-}
-
-function setActiveSession(sessionId, sessionData) {
-    activeSessions.set(sessionId, sessionData);
-}
-
+function getActiveSession(sessionId) { return activeSessions.get(sessionId); }
+function setActiveSession(sessionId, sessionData) { activeSessions.set(sessionId, sessionData); }
 function removeActiveSession(sessionId) {
     const session = activeSessions.get(sessionId);
     if (session) {
@@ -23,25 +15,42 @@ function removeActiveSession(sessionId) {
     }
 }
 
+// Helper map to convert state names/codes
+const stateNameToCode = {
+    'ANDHRA PRADESH': 'AP', 'ARUNACHAL PRADESH': 'AR', 'ASSAM': 'AS', 'BIHAR': 'BR',
+    'CHHATTISGARH': 'CG', 'GOA': 'GA', 'GUJARAT': 'GJ', 'HARYANA': 'HR', 'HIMACHAL PRADESH': 'HP',
+    'JAMMU AND KASHMIR': 'JK', 'JHARKHAND': 'JH', 'KARNATAKA': 'KA', 'KERALA': 'KL', 'MADHYA PRADESH': 'MP',
+    'MAHARASHTRA': 'MH', 'MANIPUR': 'MN', 'MEGHALAYA': 'ML', 'MIZORAM': 'MZ', 'NAGALAND': 'NL',
+    'ODISHA': 'OD', 'PUNJAB': 'PB', 'RAJASTHAN': 'RJ', 'SIKKIM': 'SK', 'TAMIL NADU': 'TN',
+    'TELANGANA': 'TS', 'TRIPURA': 'TR', 'UTTAR PRADESH': 'UP', 'UTTARAKHAND': 'UK',
+    'WEST BENGAL': 'WB', 'ANDAMAN AND NICOBAR': 'AN', 'CHANDIGARH': 'CH', 'DAMAN AND DIU': 'DD',
+    'DELHI': 'DL', 'LADAKH': 'LA', 'LAKSHADWEEP': 'LD', 'PUDUCHERRY': 'PY'
+};
+const capitalize = (s) => {
+    if (typeof s !== 'string' || s.length === 0) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+
 async function registerVehicle(data) {
     const { email, otp, sessionId, ...vehicleDetails } = data;
 
     try {
-        // Step 1: Send OTP (Unchanged)
+        // Step 1: Send OTP
         if (!sessionId && !otp) {
             console.log('📋 Step 1: Sending OTP...');
             const browser = await chromium.launch({ headless: true, slowMo: 50 });
             const context = await browser.newContext();
             const page = await context.newPage();
             
-            await page.goto('http://localhost:5000', { waitUntil: 'networkidle' });
+            // --- THIS IS THE FIX ---
+            await page.goto('http://localhost:5000/index.html', { waitUntil: 'networkidle' });
+            // --- END OF FIX ---
             
             await page.click('#loginBtn');
             await page.waitForSelector('#loginModal.show', { timeout: 5000 });
             await page.fill('#loginEmail', email);
             await page.click('#sendOtpBtn');
-            
-            // Wait for OTP form to ensure email was accepted
             await page.waitForSelector('#otpForm', { state: 'visible', timeout: 10000 });
             
             const newSessionId = `register_${Date.now()}`;
@@ -56,23 +65,18 @@ async function registerVehicle(data) {
             };
         }
 
-        // Step 2: Verify OTP (Unchanged)
+        // Step 2: Verify OTP
         if (sessionId && otp && !vehicleDetails.ownerName) {
             console.log('📋 Step 2: Verifying OTP...');
             const session = getActiveSession(sessionId);
             if (!session) throw new Error('Session expired.');
-
             const { page } = session;
 
             await page.fill('#loginOTP', otp);
             await page.click('#verifyOtpBtn');
-            
-            // Wait for login to complete (logout button appears)
             await page.waitForSelector('#logoutBtn', { state: 'visible', timeout: 15000 });
             
             console.log('✅ Login Successful. Awaiting vehicle details.');
-            
-            // We keep the session (browser) open!
             return {
                 success: true,
                 step: 'logged_in',
@@ -86,56 +90,48 @@ async function registerVehicle(data) {
             console.log('📋 Step 3: Filling registration form...');
             const session = getActiveSession(sessionId);
             if (!session) throw new Error('Session expired.');
-
             const { browser, page } = session;
             
-            // Click on e-Services (if not already there)
             await page.click('a[onclick*="services"]');
             await page.waitForTimeout(500);
 
-            // Click on New Vehicle Registration service card
             await page.click('.service-card:has-text("New Vehicle Registration")');
             await page.waitForSelector('#newRegModal.show', { timeout: 5000 });
             console.log('✅ Opened new registration modal');
 
-            // --- THIS IS THE FIX ---
-            // Wait for the first form field to be visible and stable
             await page.waitForSelector('#newReg_ownerName', { state: 'visible', timeout: 5000 });
-            await page.waitForTimeout(200); // Small buffer for CSS animation
+            await page.waitForTimeout(200); 
             console.log('✅ Form is visible and ready.');
-            // --- END OF FIX ---
 
-            // Fill the form with data from the portal
             await page.fill('#newReg_ownerName', vehicleDetails.ownerName);
             await page.fill('#newReg_fatherName', vehicleDetails.fatherName);
             await page.fill('#newReg_mobile', vehicleDetails.mobile);
-            await page.fill('#newReg_email', session.email); // Use the verified email
+            await page.fill('#newReg_email', session.email); 
             await page.fill('#newReg_address', vehicleDetails.address);
             await page.fill('#newReg_class', vehicleDetails.vehicleClass);
             await page.fill('#newReg_model', vehicleDetails.model);
-            await page.selectOption('#newReg_fuel', vehicleDetails.fuel);
+            
+            const fuelType = capitalize(vehicleDetails.fuel);
+            await page.selectOption('#newReg_fuel', { label: fuelType });
+
             await page.fill('#newReg_color', vehicleDetails.color);
             await page.fill('#newReg_amount', vehicleDetails.price);
-            
-            // This line will now work
-            await page.selectOption('#newReg_rto', vehicleDetails.rto);
+
+            const rtoInput = vehicleDetails.rto.toUpperCase();
+            const rtoCode = stateNameToCode[rtoInput] || rtoInput; 
+            await page.selectOption('#newReg_rto', rtoCode); 
             console.log('✅ Filled registration form');
 
-            // Check all checkboxes
             const checkboxes = await page.$$('#newRegModal input[type="checkbox"]');
             for (const checkbox of checkboxes) {
                 await checkbox.check();
             }
             console.log('✅ Checked all document checkboxes');
 
-            // Submit form
             await page.click('#newRegForm button[type="submit"]');
-            
-            // Wait for receipt modal
             await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
             console.log('✅ Receipt modal opened');
             
-            // Extract result
             const receiptText = await page.textContent('#receiptContentOutput');
             const regNoMatch = receiptText.match(/Vehicle Reg\. No: ([A-Z0-9]+)/);
             const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
@@ -145,13 +141,11 @@ async function registerVehicle(data) {
                 registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
                 ownerName: vehicleDetails.ownerName,
                 model: vehicleDetails.model,
-                status: 'COMPLETED',
-                receiptPreview: receiptText.substring(0, 500) + '...'
+                status: 'COMPLETED'
             };
             
             console.log('✅ Registration completed:', result.registrationNumber);
             
-            // Task is complete, clean up the session
             removeActiveSession(sessionId);
             
             return {
@@ -162,12 +156,10 @@ async function registerVehicle(data) {
             };
         }
 
-        // If no condition is met, something is wrong
         throw new Error('Invalid request state.');
 
     } catch (error) {
         console.error('❌ Automation Error:', error.message);
-        // Clean up on error
         removeActiveSession(sessionId);
         
         return {
@@ -178,7 +170,6 @@ async function registerVehicle(data) {
     }
 }
 
-// Re-using the cleanup logic from your searchVehicle script
 function cleanupOldSessions() {
     const now = Date.now();
     const maxAge = 10 * 60 * 1000; // 10 minutes
@@ -194,7 +185,6 @@ function cleanupOldSessions() {
 }
 setInterval(cleanupOldSessions, 5 * 60 * 1000);
 
-// We need to export an object containing all our functions
 module.exports = {
     registerVehicle,
     getActiveSession,
