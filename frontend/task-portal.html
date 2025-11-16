@@ -3,30 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VAHAN Automation Portal</title>
+    <title>Task Automation Portal - Government Services</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="task-portal-styles.css">
 </head>
 <body>
     <div class="container">
-        
         <div class="portal-header">
             <h1>Task Automation Portal</h1>
             <div class="header-icons">
-                <button id="editProfileBtn" class="icon-btn" title="Edit Profile">✏️</button>
-                <button id="logoutBtn" class="icon-btn" title="Logout">Logout</button>
+                <button id="editProfileBtn" class="icon-btn" title="Edit Profile">
+                    <span>✏️</span>
+                    <span>Profile</span>
+                </button>
+                <button id="logoutBtn" class="icon-btn" title="Logout">
+                    <span>🚪</span>
+                    <span>Logout</span>
+                </button>
             </div>
         </div>
+        
         <div id="chat-log"></div>
+        
         <div id="status-bar"></div>
 
         <form id="chat-form">
-            <input type="text" id="user-input" placeholder="Type your request..." autocomplete="off">
-            <button type="submit">Send</button>
+            <input type="text" id="user-input" placeholder="Ask me anything... (e.g., search vehicle, register for e-id)" autocomplete="off">
+            <button type="submit">
+                <span>Send</span>
+                <span>➤</span>
+            </button>
         </form>
     </div>
 
     <script src="task-portal-auth.js"></script>
-    
     <script src="task-portal.js"></script>
 </body>
 </html>
