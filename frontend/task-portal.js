@@ -64,7 +64,6 @@ logoutBtn.addEventListener('click', handleLogout);
 
 
 window.onload = async () => {
-    // MODIFIED: Added 'book a passport' to the examples
     addMessageToLog(`Hello, <b>${currentUser.name || 'user'}</b>! How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to book a passport</b>`, 'bot');
     await fetchCurrentUserProfile();
 }
@@ -122,7 +121,7 @@ async function handleUserInput(e) {
 
 // --- 2. THE ROUTER: Now uses the AI's response ---
 async function handleNewRequest(aiResponse) {
-    const { task, regNo, state, reply } = aiResponse;
+    const { task, regNo, state, eId, reply } = aiResponse;
 
     switch (task) {
         case 'search':
@@ -162,9 +161,47 @@ async function handleNewRequest(aiResponse) {
             break;
         // --- END NEW CASE ---
 
+        // --- NEW: E-ID REGISTRATION CASE ---
+        case 'eid_register':
+            currentTaskState = 'form_pending';
+            addMessageToLog(`OK, starting <b>E-ID Registration</b>.<br>I'll use your profile details to pre-fill the form. Please fill out the registration form below.`, 'bot');
+            showEidRegisterForm();
+            break;
+        // --- END NEW CASE ---
+
+        // --- NEW: E-ID SEARCH CASE ---
+        case 'eid_search':
+            const eIdToSearch = aiResponse.eId;
+            if (!eIdToSearch) {
+                currentTaskState = 'awaiting_eid_search_number';
+                addMessageToLog(`OK, starting <b>E-ID Search</b>.<br><br>Please provide the 12-digit E-ID number you want to search for.`, 'bot');
+            } else {
+                // E-ID provided, search directly
+                sessionData = { eId: eIdToSearch };
+                addMessageToLog(`OK, searching for E-ID <b>${eIdToSearch}</b>...`, 'bot');
+                handleEidSearch();
+            }
+            break;
+        // --- END NEW CASE ---
+
+        // --- NEW: E-ID UPDATE CASE ---
+        case 'eid_update':
+            const eIdToUpdate = aiResponse.eId;
+            if (!eIdToUpdate) {
+                currentTaskState = 'awaiting_eid_update_number';
+                addMessageToLog(`OK, starting <b>E-ID Update</b>.<br><br>Please provide the 12-digit E-ID number you want to update.`, 'bot');
+            } else {
+                // E-ID provided, start update flow
+                sessionData = { eId: eIdToUpdate };
+                addMessageToLog(`OK, finding E-ID <b>${eIdToUpdate}</b>...`, 'bot');
+                handleEidUpdateFind();
+            }
+            break;
+        // --- END NEW CASE ---
+
         case 'unknown':
         default:
-            addMessageToLog(reply || "Sorry, I'm not sure how to help with that. I can help with VAHAN services like 'search', 'register', 'transfer', or 'update'.", 'bot');
+            addMessageToLog(reply || "Sorry, I'm not sure how to help with that. I can help with VAHAN services like 'search', 'register', 'transfer', or 'update', and passport applications.", 'bot');
             break;
     }
 }
@@ -342,6 +379,72 @@ async function handleMidTaskInput(userInput) {
             resetChat();
             break;
         // --- END NEW FLOW ---
+
+        // --- NEW: E-ID REGISTRATION FLOW ---
+        case 'awaiting_eid_captcha':
+            sessionData.captcha = userInput.toUpperCase();
+            addMessageToLog('OK, verifying captcha and completing registration...', 'bot');
+            
+            const eidResult2 = await callAutomation('eid_register', {
+                sessionId: sessionData.sessionId,
+                step: 'submit_captcha',
+                captcha: sessionData.captcha,
+                // Re-send form data for result display
+                name: sessionData.name
+            });
+
+            showResult(eidResult2.data, 'eid_register');
+            resetChat();
+            break;
+        // --- END NEW E-ID FLOW ---
+
+        // --- NEW: E-ID SEARCH FLOW ---
+        case 'awaiting_eid_search_number':
+            const eIdInput = userInput.trim().replace(/\s/g, ''); // Remove spaces
+            if (eIdInput.length !== 12 || !/^\d+$/.test(eIdInput)) {
+                addMessageToLog('<b>Error:</b> Please provide a valid 12-digit E-ID number (e.g., 123456789012).', 'error');
+                return;
+            }
+            sessionData = { eId: eIdInput };
+            addMessageToLog(`OK, searching for E-ID <b>${eIdInput}</b>...`, 'bot');
+            await handleEidSearch();
+            break;
+        // --- END NEW E-ID SEARCH FLOW ---
+
+        // --- NEW: E-ID UPDATE FLOW ---
+        case 'awaiting_eid_update_number':
+            const eIdUpdateInput = userInput.trim().replace(/\s/g, ''); // Remove spaces
+            if (eIdUpdateInput.length !== 12 || !/^\d+$/.test(eIdUpdateInput)) {
+                addMessageToLog('<b>Error:</b> Please provide a valid 12-digit E-ID number (e.g., 123456789012).', 'error');
+                return;
+            }
+            sessionData = { eId: eIdUpdateInput };
+            addMessageToLog(`OK, finding E-ID <b>${eIdUpdateInput}</b>...`, 'bot');
+            await handleEidUpdateFind();
+            break;
+
+        case 'awaiting_eid_update_fields':
+            // User will provide field updates in a form, handled separately
+            break;
+
+        case 'awaiting_eid_update_captcha':
+            sessionData.captcha = userInput.toUpperCase();
+            addMessageToLog('OK, verifying captcha and completing update...', 'bot');
+            
+            const eidUpdateResult = await callAutomation('eid_update', {
+                sessionId: sessionData.sessionId,
+                step: 'submit_captcha',
+                captcha: sessionData.captcha,
+                eId: sessionData.eId,
+                name: sessionData.name,
+                phone: sessionData.phone,
+                address: sessionData.address
+            });
+
+            showResult(eidUpdateResult.data, 'eid_update');
+            resetChat();
+            break;
+        // --- END NEW E-ID UPDATE FLOW ---
 
         case 'form_pending':
             addMessageToLog('Please fill out the form above to continue. Your text here is ignored until the form is submitted.', 'bot');
@@ -676,6 +779,262 @@ async function handleFreshPassportSubmit() {
 }
 // --- END NEW PASSPORT FUNCTIONS ---
 
+// --- NEW: E-ID REGISTRATION FORM FUNCTIONS ---
+function showEidRegisterForm() {
+    const formHtml = `
+        <div class="chat-form-container">
+            <h4>🆔 E-ID Registration - Step 1: Personal Details</h4>
+            <p>Using your profile details (<b>${currentUser.username}</b>, <b>${currentUser.email}</b>). Details are pre-filled.</p>
+            
+            <h4>Personal Information</h4>
+            <div class="form-row">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="eid_name" value="${currentUser.username || ''}"></div>
+                <div class="form-group"><label>Date of Birth *</label><input type="date" id="eid_dob"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Gender *</label><select id="eid_gender"><option value="">-- Select --</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                <div class="form-group"><label>Phone Number *</label><input type="tel" id="eid_phone" value="${currentUser.phoneno || ''}" pattern="[0-9]{10}"></div>
+            </div>
+            <div class="form-group"><label>Full Address *</label><textarea id="eid_address" rows="3">${currentUser.address || ''}</textarea></div>
+
+            <button class="btn" onclick="handleEidRegisterSubmit()">Submit & Get CAPTCHA</button>
+            <div class="status-message" id="formStatusMsg"></div>
+        </div>
+    `;
+    addMessageToLog(formHtml, 'bot');
+}
+
+async function handleEidRegisterSubmit() {
+    setThinking(true);
+    // 1. Gather all data from the form
+    const formData = {
+        step: 'fill_form',
+        name: document.getElementById('eid_name').value,
+        dob: document.getElementById('eid_dob').value,
+        gender: document.getElementById('eid_gender').value,
+        phone: document.getElementById('eid_phone').value,
+        address: document.getElementById('eid_address').value
+    };
+
+    // Simple validation
+    const requiredFields = ['name', 'dob', 'gender', 'phone', 'address'];
+    for (let key of requiredFields) {
+        if (!formData[key]) {
+            document.getElementById('formStatusMsg').textContent = `Please fill in all required fields. "${key}" is missing.`;
+            document.getElementById('formStatusMsg').className = 'status-message show error';
+            setThinking(false);
+            return;
+        }
+    }
+
+    // 2. Store key data for the final step
+    sessionData.name = formData.name;
+
+    addMessageToLog('Got it. Submitting form details and fetching CAPTCHA...', 'bot');
+    try {
+        // 3. Call automation to fill the form
+        const result = await callAutomation('eid_register', formData);
+        
+        // 4. Handle captcha response
+        if (result.success && result.step === 'captcha_sent') {
+            sessionData.sessionId = result.sessionId;
+            currentTaskState = 'awaiting_eid_captcha';
+            
+            // Show screenshots if available
+            let screenshotHtml = '';
+            if (result.screenshotsBase64) {
+                screenshotHtml = '<div style="margin: 10px 0;"><strong>📸 Automation Screenshots:</strong><br>';
+                if (result.screenshotsBase64.beforeFill) {
+                    screenshotHtml += `<details><summary>Before Filling Form</summary><img src="${result.screenshotsBase64.beforeFill}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                if (result.screenshotsBase64.afterFill) {
+                    screenshotHtml += `<details><summary>After Filling Form</summary><img src="${result.screenshotsBase64.afterFill}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                if (result.screenshotsBase64.captchaPage) {
+                    screenshotHtml += `<details><summary>CAPTCHA Page</summary><img src="${result.screenshotsBase64.captchaPage}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                screenshotHtml += '</div>';
+            }
+            
+            addMessageToLog(`Form submitted! Please type the CAPTCHA code:<br>${screenshotHtml}<img src="${result.captchaImageBase64}" class="captcha-image" alt="captcha">`, 'bot');
+        } else {
+            // Show error screenshot if available
+            let errorScreenshotHtml = '';
+            if (result.screenshotBase64) {
+                errorScreenshotHtml = `<br><br><strong>📸 Error Screenshot:</strong><br><img src="${result.screenshotBase64}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">`;
+            }
+            throw new Error(result.message || 'Failed to fill form.' + errorScreenshotHtml);
+        }
+    } catch (error) {
+         addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
+         resetChat();
+    } finally {
+        setThinking(false);
+    }
+}
+// --- END NEW E-ID REGISTRATION FUNCTIONS ---
+
+// --- NEW: E-ID SEARCH FUNCTIONS ---
+async function handleEidSearch() {
+    setThinking(true);
+    try {
+        const result = await callAutomation('eid_search', sessionData);
+        
+        // Show screenshots if available
+        let screenshotHtml = '';
+        if (result.screenshotsBase64) {
+            screenshotHtml = '<div style="margin: 10px 0;"><strong>📸 Automation Screenshots:</strong><br>';
+            if (result.screenshotsBase64.beforeSearch) {
+                screenshotHtml += `<details><summary>Before Search</summary><img src="${result.screenshotsBase64.beforeSearch}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+            }
+            if (result.screenshotsBase64.afterSearch) {
+                screenshotHtml += `<details><summary>After Search</summary><img src="${result.screenshotsBase64.afterSearch}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+            }
+            screenshotHtml += '</div>';
+        }
+        
+        if (result.success) {
+            showResult(result.data, 'eid_search');
+            if (screenshotHtml) {
+                addMessageToLog(screenshotHtml, 'bot');
+            }
+        } else {
+            // Show error screenshot if available
+            let errorScreenshotHtml = '';
+            if (result.screenshotBase64) {
+                errorScreenshotHtml = `<br><br><strong>📸 Error Screenshot:</strong><br><img src="${result.screenshotBase64}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">`;
+            }
+            addMessageToLog(`❌ **Search Failed:** ${result.error || result.message}${errorScreenshotHtml}`, 'error');
+        }
+    } catch (error) {
+        addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
+    } finally {
+        resetChat();
+        setThinking(false);
+    }
+}
+// --- END NEW E-ID SEARCH FUNCTIONS ---
+
+// --- NEW: E-ID UPDATE FUNCTIONS ---
+async function handleEidUpdateFind() {
+    setThinking(true);
+    try {
+        const result = await callAutomation('eid_update', {
+            step: 'find_user',
+            eId: sessionData.eId
+        });
+        
+        if (result.success && result.step === 'user_found') {
+            sessionData.sessionId = result.sessionId;
+            currentTaskState = 'awaiting_eid_update_fields';
+            addMessageToLog('✅ User found! Please fill out the update form below.', 'bot');
+            showEidUpdateForm();
+        } else {
+            let errorScreenshotHtml = '';
+            if (result.screenshotBase64) {
+                errorScreenshotHtml = `<br><br><strong>📸 Error Screenshot:</strong><br><img src="${result.screenshotBase64}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">`;
+            }
+            addMessageToLog(`❌ **Find Failed:** ${result.error || result.message}${errorScreenshotHtml}`, 'error');
+        }
+    } catch (error) {
+        addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
+        resetChat();
+    } finally {
+        setThinking(false);
+    }
+}
+
+function showEidUpdateForm() {
+    const formHtml = `
+        <div class="chat-form-container">
+            <h4>✏️ E-ID Update - Edit Your Details</h4>
+            <p>You can update one or more fields below. Leave fields unchanged if you don't want to update them.</p>
+            
+            <h4>Update Information</h4>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="eid_update_name" placeholder="Leave empty to keep unchanged">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="eid_update_phone" placeholder="Leave empty to keep unchanged" pattern="[0-9]{10}">
+            </div>
+            <div class="form-group">
+                <label>Full Address</label>
+                <textarea id="eid_update_address" rows="3" placeholder="Leave empty to keep unchanged"></textarea>
+            </div>
+
+            <button class="btn" onclick="handleEidUpdateSubmit()">Submit & Get CAPTCHA</button>
+            <div class="status-message" id="formStatusMsg"></div>
+        </div>
+    `;
+    addMessageToLog(formHtml, 'bot');
+}
+
+async function handleEidUpdateSubmit() {
+    setThinking(true);
+    const formData = {
+        sessionId: sessionData.sessionId,
+        step: 'edit_fields',
+        eId: sessionData.eId,
+        name: document.getElementById('eid_update_name').value.trim() || undefined,
+        phone: document.getElementById('eid_update_phone').value.trim() || undefined,
+        address: document.getElementById('eid_update_address').value.trim() || undefined
+    };
+
+    // At least one field must be provided
+    if (!formData.name && !formData.phone && !formData.address) {
+        document.getElementById('formStatusMsg').textContent = 'Please provide at least one field to update.';
+        document.getElementById('formStatusMsg').className = 'status-message show error';
+        setThinking(false);
+        return;
+    }
+
+    // Store data for final step
+    sessionData.name = formData.name;
+    sessionData.phone = formData.phone;
+    sessionData.address = formData.address;
+
+    addMessageToLog('Got it. Submitting updates and fetching CAPTCHA...', 'bot');
+    try {
+        const result = await callAutomation('eid_update', formData);
+        
+        if (result.success && result.step === 'captcha_sent') {
+            sessionData.sessionId = result.sessionId;
+            currentTaskState = 'awaiting_eid_update_captcha';
+            
+            // Show screenshots if available
+            let screenshotHtml = '';
+            if (result.screenshotsBase64) {
+                screenshotHtml = '<div style="margin: 10px 0;"><strong>📸 Automation Screenshots:</strong><br>';
+                if (result.screenshotsBase64.beforeEdit) {
+                    screenshotHtml += `<details><summary>Before Editing</summary><img src="${result.screenshotsBase64.beforeEdit}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                if (result.screenshotsBase64.afterEdit) {
+                    screenshotHtml += `<details><summary>After Editing</summary><img src="${result.screenshotsBase64.afterEdit}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                if (result.screenshotsBase64.captchaPage) {
+                    screenshotHtml += `<details><summary>CAPTCHA Page</summary><img src="${result.screenshotsBase64.captchaPage}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></details>`;
+                }
+                screenshotHtml += '</div>';
+            }
+            addMessageToLog(`Updates submitted! Please type the CAPTCHA code:<br>${screenshotHtml}<img src="${result.captchaImageBase64}" class="captcha-image" alt="captcha">`, 'bot');
+        } else {
+            let errorScreenshotHtml = '';
+            if (result.screenshotBase64) {
+                errorScreenshotHtml = `<br><br><strong>📸 Error Screenshot:</strong><br><img src="${result.screenshotBase64}" style="max-width: 100%; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">`;
+            }
+            throw new Error(result.message || 'Failed to submit updates.' + errorScreenshotHtml);
+        }
+    } catch (error) {
+        addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
+        resetChat();
+    } finally {
+        setThinking(false);
+    }
+}
+// --- END NEW E-ID UPDATE FUNCTIONS ---
+
 
 // --- PROFILE EDITING FUNCTIONS ---
 async function showProfileForm() {
@@ -880,6 +1239,38 @@ function showResult(data, taskType) {
                 <tr><td>Reference Number</td><td><strong>${data.applicationId}</strong></td></tr>
                 <tr><td>Applicant Name</td><td>${data.applicantName}</td></tr>
                 <tr><td>Processing Time</td><td>${data.processingTime}</td></tr>
+            </table>
+        `;
+    } else if (taskType === 'eid_register') { // --- NEW E-ID RESULT CASE ---
+        title = '✅ E-ID Registered Successfully!';
+         content = `
+            <table class="result-table">
+                <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                <tr><td>E-ID Number</td><td><strong>${data.eId}</strong></td></tr>
+                <tr><td>Name</td><td>${data.name}</td></tr>
+                <tr><td>Issued Date</td><td>${data.issuedDate}</td></tr>
+            </table>
+        `;
+    } else if (taskType === 'eid_search') { // --- NEW E-ID SEARCH RESULT CASE ---
+        title = '✅ E-ID Search Completed!';
+         content = `
+            <table class="result-table">
+                <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                <tr><td>E-ID Number</td><td><strong>${data.eId}</strong></td></tr>
+                <tr><td>Issued Date</td><td>${data.issuedDate}</td></tr>
+                <tr><td>Note</td><td>${data.message || 'Personal information is masked for security.'}</td></tr>
+            </table>
+        `;
+    } else if (taskType === 'eid_update') { // --- NEW E-ID UPDATE RESULT CASE ---
+        title = '✅ E-ID Updated Successfully!';
+         content = `
+            <table class="result-table">
+                <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                <tr><td>E-ID Number</td><td><strong>${data.eId}</strong></td></tr>
+                ${data.name ? `<tr><td>Updated Name</td><td>${data.name}</td></tr>` : ''}
+                ${data.phone ? `<tr><td>Updated Phone</td><td>${data.phone}</td></tr>` : ''}
+                ${data.address ? `<tr><td>Updated Address</td><td>${data.address}</td></tr>` : ''}
+                <tr><td>Message</td><td>${data.message || 'E-ID information updated successfully.'}</td></tr>
             </table>
         `;
     }

@@ -12,22 +12,50 @@ const { transferOwnership } = require('../automation/transferOwnership');
 const { updateContacts } = require('../automation/updateContacts');
 // --- NEW SCRIPT IMPORTED ---
 const { freshPassport } = require('../automation/freshPassport');
+const { registerEid } = require('../automation/registerEid');
+const { searchEid } = require('../automation/searchEid');
+const { updateEid } = require('../automation/updateEid');
+
+// Helper function to convert image to base64
+const convertImageToBase64 = (imagePath) => {
+    try {
+        if (!imagePath || !fs.existsSync(imagePath)) return null;
+        const imageBuffer = fs.readFileSync(imagePath);
+        return `data:image/png;base64,${imageBuffer.toString('base64')}`;
+    } catch (error) {
+        console.error('❌ Error converting image to base64:', error.message);
+        return null;
+    }
+};
 
 // Helper function to handle captcha image conversion
 const handleCaptchaResponse = (res, result) => {
     try {
-        const imagePath = result.captchaImage; 
-        const imageBuffer = fs.readFileSync(imagePath);
-        const base64Image = imageBuffer.toString('base64');
-        result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
-        delete result.captchaImage; 
-        fs.unlinkSync(imagePath);
+        // Convert captcha image
+        if (result.captchaImage) {
+            result.captchaImageBase64 = convertImageToBase64(result.captchaImage);
+            // Don't delete captcha image yet - user might need it
+        }
+        
+        // Convert any screenshots
+        if (result.screenshots) {
+            result.screenshotsBase64 = {};
+            for (const [key, path] of Object.entries(result.screenshots)) {
+                result.screenshotsBase64[key] = convertImageToBase64(path);
+            }
+        }
+        
+        // Convert single screenshot if present
+        if (result.screenshot) {
+            result.screenshotBase64 = convertImageToBase64(result.screenshot);
+        }
+        
         res.status(200).json(result);
     } catch (imgError) {
-        console.error('❌ Error reading/deleting captcha image:', imgError.message);
+        console.error('❌ Error processing images:', imgError.message);
         res.status(500).json({
             success: false,
-            message: 'Failed to read captcha image'
+            message: 'Failed to process images'
         });
     }
 };
@@ -85,6 +113,49 @@ router.post('/execute', async (req, res) => {
                 break;
             // --- END OF NEW CASE ---
 
+            // --- NEW CASE FOR E-ID REGISTRATION ---
+            case 'eid_register':
+                console.log('🆔 Executing E-ID registration automation...');
+                result = await registerEid(taskData);
+                // Always handle response to convert screenshots to base64
+                if (result.success) {
+                    if (result.step === 'captcha_sent' || result.screenshots || result.screenshot) {
+                        return handleCaptchaResponse(res, result);
+                    }
+                } else if (result.screenshot) {
+                    // Even errors might have screenshots
+                    return handleCaptchaResponse(res, result);
+                }
+                break;
+            // --- END OF NEW CASE ---
+
+            // --- NEW CASE FOR E-ID SEARCH ---
+            case 'eid_search':
+                console.log('🔍 Executing E-ID search automation...');
+                result = await searchEid(taskData);
+                // Always handle response to convert screenshots to base64
+                if (result.screenshots || result.screenshot) {
+                    return handleCaptchaResponse(res, result);
+                }
+                break;
+            // --- END OF NEW CASE ---
+
+            // --- NEW CASE FOR E-ID UPDATE ---
+            case 'eid_update':
+                console.log('✏️ Executing E-ID update automation...');
+                result = await updateEid(taskData);
+                // Always handle response to convert screenshots to base64
+                if (result.success) {
+                    if (result.step === 'captcha_sent' || result.screenshots || result.screenshot) {
+                        return handleCaptchaResponse(res, result);
+                    }
+                } else if (result.screenshot) {
+                    // Even errors might have screenshots
+                    return handleCaptchaResponse(res, result);
+                }
+                break;
+            // --- END OF NEW CASE ---
+
             default:
                 return res.status(400).json({
                     success: false,
@@ -117,7 +188,7 @@ router.get('/status', (req, res) => {
     res.json({
         success: true,
         message: 'Automation service is running',
-        availableTasks: ['search', 'register', 'transfer', 'update', 'passport_fresh'], // Added new task
+        availableTasks: ['search', 'register', 'transfer', 'update', 'passport_fresh', 'eid_register', 'eid_search', 'eid_update'], // Added new task
         note: 'All tasks are now implemented'
     });
 });
