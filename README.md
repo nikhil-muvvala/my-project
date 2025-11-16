@@ -635,7 +635,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
+- **Ch Pranav Tej (CS24B057)** - *Scrum Master, AIML Dev, Full Stack Dev*- [Pranav Tej](https://github.com/Codebank-Pranav-Tej-Ch-Network) - Contributions include Management of All Tasks, Organizing meetings, Planning pipeline, Building of ITRFiling script, Creating Income Tax mock portal and the Decentralized Agentic Platform for Income Tax Website [Link](https://github.com/Codebank-Pranav-Tej-Ch-Network/Autonomous-Agentic-Platform-for-Government-Websites), and final integration of all scripts.
+- **M Nikhil (CS24B)** - *Full Stack Dev, AIML Dev* - [Nikhil](https://github.com/nikhil-muvvala) - Contributions include Planning Pipeline, Building of Vahan portal, Vahan portal automation scripts, and Centralized Agentic Platform for the 3 websites with full on integration. Also wrote the documentation
+- **G Siddhardha (CS24B012)** - *Full Stack Dev, AIML Dev* - [Siddhardha](https://github.com/Siddhardha-11) - Contributions include Front end Design, Building of E-ID Portal, E-ID portal automation scripts, and Centralized Agentic Platform for the 3 websites with help in integration.
+- **M Vinay Sai (CS24B)** - *Full Stack Dev, AIML Dev* - [Vinay](https://github.com/VinaySai-GH) - Contributions include building of the Passport Seva portal, Passport Seva portal automation scripts, and help in Centralized Agentic Platform for the 3 websites.
+- **S Hemanth (CS24B)** - *Full Stack Dev, AIML Dev* - [Hemanth](https://github.com/Hemanth-SVS) - Contributions include building of the Passport Seva portal, Backend Design, and help in integration of the final Centralized Agentic Platform for the 3 websites with help in integration. 
+
+We have done all commits for the project using Nikhil's github account, i.e., after integrating our files into the framework, we have sent the files to Nikhil in order to push them into this repo.
 
 ---
 
@@ -645,12 +651,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Google Generative AI** - For natural language processing
 - **MongoDB** - For robust database solutions
 - **Express.js** - For the powerful web framework
+- **Redis** - For the amazing queue processing
 
 ---
 
 ## 📞 Support
 
-For support, email your-email@example.com or open an issue in the repository.
+For support, mail to pranavtej.9.1a@gmail.com, or open an issue in the repository.
 
 ---
 
