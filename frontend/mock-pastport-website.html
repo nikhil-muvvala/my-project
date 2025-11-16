@@ -1,0 +1,2490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passport Seva - Ministry of External Affairs</title>
+    
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function(){
+            emailjs.init('WtfWvw_JybIEOIjHq');
+        })();
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: white;
+            padding: 15px 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .emblem {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ff9933 0%, #ffffff 50%, #138808 100%);
+            border-radius: 50%;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-text h1 {
+            font-size: 26px;
+            color: #003d82;
+        }
+
+        .header-text p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .user-section {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .nav {
+            background: #1e3a5f;
+        }
+
+        .nav ul {
+            list-style: none;
+            display: flex;
+        }
+
+        .nav li { flex: 1; }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 15px 20px;
+            display: block;
+            text-align: center;
+        }
+
+        .nav a:hover { background: #2c5282; }
+        .nav a.active { background: #0066cc; }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+
+        .login-container {
+            max-width: 450px;
+            margin: 50px auto;
+            padding: 40px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .service-card:hover {
+            border-color: #0066cc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        .page-title {
+            color: #003d82;
+            font-size: 24px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #0066cc;
+        }
+
+        .form-stage {
+            display: none;
+        }
+
+        .form-stage.active { display: block; }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .form-section h3 {
+            color: #003d82;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0066cc;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .required { color: #d32f2f; }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .declaration-box {
+            background: #fff3cd;
+            border: 2px solid #ff9800;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .declaration-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-confirm {
+            background: #4caf50;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-exit {
+            background: #f44336;
+            color: white;
+            flex: 1;
+        }
+
+        .captcha-container {
+            background: #f9f9f9;
+            border: 2px solid #ddd;
+            padding: 25px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .captcha-image {
+            background: white;
+            border: 2px solid #ccc;
+            padding: 15px 30px;
+            display: inline-block;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 28px;
+            letter-spacing: 10px;
+            font-weight: bold;
+            /* This is the fix for older Safari */
+-webkit-user-select: none;  
+
+/* This is your original line for modern browsers */
+user-select: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            color: #4caf50;
+            margin-bottom: 20px;
+        }
+
+        .app-detail-card {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+        }
+
+        .app-detail-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .app-detail-label {
+            font-weight: bold;
+            color: #003d82;
+        }
+
+        .fee-calculator {
+            max-width: 600px;
+        }
+
+        .fee-result {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .fee-result.show { display: block; }
+
+        .fee-amount {
+            font-size: 32px;
+            color: #2e7d32;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .auto-filling {
+            border-color: #4caf50 !important;
+            background: #e8f5e9 !important;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .home-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .tracking-box {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .days-remaining {
+            font-size: 48px;
+            color: #1976d2;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage">
+        <div class="header">
+            <div class="emblem">🇮🇳</div>
+            <div class="header-text">
+                <h1>Passport Seva</h1>
+                <p>Ministry of External Affairs, Government of India</p>
+            </div>
+        </div>
+
+        <div class="login-container">
+            <h2 style="color: #003d82; margin-bottom: 30px; text-align: center;">Login to Passport Seva</h2>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginName">Full Name</label>
+                    <input type="text" id="loginName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" style="display: none;">
+        <div class="header">
+            <div class="emblem">🇮🇳</div>
+            <div class="header-text">
+                <h1>Passport Seva</h1>
+                <p>Ministry of External Affairs, Government of India</p>
+            </div>
+            <div class="user-section">
+                <strong id="userName">User</strong>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <ul>
+                <li><a href="#" class="active" onclick="showPage(event, 'home')">Home</a></li>
+                <li><a href="#" onclick="showPage(event, 'services')">Services</a></li>
+                <li><a href="#" onclick="showPage(event, 'applications')">My Applications</a></li>
+                <li><a href="#" onclick="showPage(event, 'track')">Track Application</a></li>
+                <li><a href="#" onclick="showPage(event, 'fees')">Fee Details</a></li>
+            </ul>
+        </nav>
+
+        <div class="container">
+            <!-- Home Page -->
+            <div id="homePage" class="page-content active">
+                <h2 class="page-title">Welcome <span id="welcomeName"></span>!</h2>
+                
+                <div style="margin: 20px 0;">
+                    <button onclick="showPage(null, 'services')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        📝 Apply for Services
+                    </button>
+                </div>
+                
+                <h3 style="margin-top: 30px; color: #003d82;">Recent Applications</h3>
+                <div id="homeApplicationsList" style="margin-top: 20px;">
+                    <p style="color: #666;">No applications yet</p>
+                </div>
+            </div>
+
+            <!-- Services Page -->
+            <div id="servicesPage" class="page-content">
+                <h2 class="page-title">Application Services</h2>
+                
+                <div class="service-grid">
+                    <div class="service-card" onclick="startApplication('fresh')">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📘</div>
+                        <h3 style="color: #003d82; margin-bottom: 10px;">Fresh Passport</h3>
+                        <p style="color: #666;">Apply for new passport</p>
+                    </div>
+
+                    <div class="service-card" onclick="startApplication('reissue')">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🔄</div>
+                        <h3 style="color: #003d82; margin-bottom: 10px;">Re-issue Passport</h3>
+                        <p style="color: #666;">Renew your existing passport</p>
+                    </div>
+
+                    <div class="service-card" onclick="startApplication('pcc')">
+                        <div style="font-size: 48px; margin-bottom: 15px;">👮</div>
+                        <h3 style="color: #003d82; margin-bottom: 10px;">Police Clearance Certificate</h3>
+                        <p style="color: #666;">PCC for overseas requirements</p>
+                    </div>
+
+                    <div class="service-card" onclick="startApplication('identity')">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🆔</div>
+                        <h3 style="color: #003d82; margin-bottom: 10px;">Identity Certificate</h3>
+                        <p style="color: #666;">Certificate for stateless persons</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Applications -->
+            <div id="applicationsPage" class="page-content">
+                <h2 class="page-title">My Applications</h2>
+                <div id="applicationsContent">
+                    <p style="color: #666;">No applications yet</p>
+                </div>
+            </div>
+
+            <!-- Track Application -->
+            <div id="trackPage" class="page-content">
+                <h2 class="page-title">Track Application</h2>
+                <div id="trackContent">
+                    <p style="color: #666;">No applications to track</p>
+                </div>
+            </div>
+
+            <!-- Fee Details -->
+            <div id="feesPage" class="page-content">
+                <h2 class="page-title">Fee Calculator</h2>
+
+                <div class="fee-calculator">
+                    <div class="form-group">
+                        <label>Application Type <span class="required">*</span></label>
+                        <select id="feeAppType" onchange="updateFeeFields()">
+                            <option value="">Select</option>
+                            <option value="fresh">Fresh Passport</option>
+                            <option value="reissue">Re-issue Passport</option>
+                            <option value="pcc">Police Clearance Certificate</option>
+                            <option value="identity">Identity Certificate</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="feeServiceTypeGroup" style="display: none;">
+                        <label>Service Type <span class="required">*</span></label>
+                        <select id="feeServiceType" onchange="calculateFeeManual()">
+                            <option value="normal">Normal</option>
+                            <option value="tatkaal">Tatkaal</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="feeBookletGroup" style="display: none;">
+                        <label>Booklet Type</label>
+                        <select id="feeBooklet" onchange="calculateFeeManual()">
+                            <option value="36">36 Pages</option>
+                            <option value="60">60 Pages</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Applicant Age <span class="required">*</span></label>
+                        <select id="feeAge" onchange="calculateFeeManual()">
+                            <option value="">Select</option>
+                            <option value="minor">Below 18 years (Minor)</option>
+                            <option value="adult">18-60 years (Adult)</option>
+                            <option value="senior">Above 60 years (Senior)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" onclick="calculateFeeManual()">Calculate Fee</button>
+
+                    <div class="fee-result" id="feeResult">
+                        <h3 style="color: #2e7d32; margin-bottom: 10px;">Total Fee</h3>
+                        <div class="fee-amount" id="feeAmount">₹ 1,500</div>
+                        <p style="font-size: 13px; color: #666; margin-top: 10px;" id="feeNote"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Form -->
+            <div id="applicationPage" class="page-content">
+                <h2 class="page-title" id="appTitle">New Application</h2>
+
+                <form id="applicationForm">
+                    <!-- FRESH/REISSUE PASSPORT - 6 Stages -->
+                    <div id="freshStages" style="display: none;">
+                        <!-- Stage 1 -->
+                        <div id="fresh_stage1" class="form-stage">
+                            <div class="form-section">
+                                <h3>Passport Type</h3>
+                                
+                                <div class="form-group">
+                                    <label>Type <span class="required">*</span></label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="applicationType" value="normal"> Normal</input></label>
+                                        <label><input type="radio" name="applicationType" value="tatkaal"> Tatkaal</label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Booklet <span class="required">*</span></label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="bookletType" value="36"> 36 Pages</label>
+                                        <label><input type="radio" name="bookletType" value="60"> 60 Pages</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stage 2: Applicant Details -->
+                        <div id="fresh_stage2" class="form-stage">
+                            <div class="form-section">
+                                <h3>Applicant Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Given Name <span class="required">*</span></label>
+                                        <input type="text" id="givenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Surname</label>
+                                        <input type="text" id="surname">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Gender <span class="required">*</span></label>
+                                        <select id="gender" required>
+                                            <option value="">Select</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Transgender">Transgender</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date of Birth <span class="required">*</span></label>
+                                        <input type="date" id="dob" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Place of Birth <span class="required">*</span></label>
+                                        <input type="text" id="placeOfBirth" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Marital Status <span class="required">*</span></label>
+                                        <select id="maritalStatus" required>
+                                            <option value="">Select</option>
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Citizenship <span class="required">*</span></label>
+                                        <select id="citizenship" required>
+                                            <option value="">Select</option>
+                                            <option value="Birth">Birth</option>
+                                            <option value="Descent">Descent</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Employment <span class="required">*</span></label>
+                                        <select id="employment" required>
+                                            <option value="">Select</option>
+                                            <option value="Government">Government</option>
+                                            <option value="Private">Private</option>
+                                            <option value="Student">Student</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Education <span class="required">*</span></label>
+                                    <select id="education" required>
+                                        <option value="">Select</option>
+                                        <option value="10th Pass And Above">10th Pass And Above</option>
+                                        <option value="Graduate And Above">Graduate And Above</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Non-ECR <span class="required">*</span></label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="nonECR" value="yes"> Yes</label>
+                                        <label><input type="radio" name="nonECR" value="no"> No</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stage 3: Family -->
+                        <div id="fresh_stage3" class="form-stage">
+                            <div class="form-section">
+                                <h3>Family Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Father's Given Name <span class="required">*</span></label>
+                                        <input type="text" id="fatherGivenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Father's Surname</label>
+                                        <input type="text" id="fatherSurname">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Mother's Given Name <span class="required">*</span></label>
+                                        <input type="text" id="motherGivenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mother's Surname</label>
+                                        <input type="text" id="motherSurname">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stage 4: Address -->
+                        <div id="fresh_stage4" class="form-stage">
+                            <div class="form-section">
+                                <h3>Address Details</h3>
+                                
+                                <div class="form-group">
+                                    <label>House No. and Street <span class="required">*</span></label>
+                                    <input type="text" id="houseNo" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>City <span class="required">*</span></label>
+                                        <input type="text" id="city" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>PIN Code <span class="required">*</span></label>
+                                        <input type="text" id="pincode" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>State <span class="required">*</span></label>
+                                        <select id="state" required>
+                                            <option value="">Select</option>
+                                            <option value="AP">Andhra Pradesh</option>
+                                            <option value="TN">Tamil Nadu</option>
+                                            <option value="KA">Karnataka</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile <span class="required">*</span></label>
+                                        <input type="tel" id="mobile" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Email <span class="required">*</span></label>
+                                    <input type="email" id="email" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stage 5: Emergency -->
+                        <div id="fresh_stage5" class="form-stage">
+                            <div class="form-section">
+                                <h3>Emergency Contact</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Name <span class="required">*</span></label>
+                                        <input type="text" id="emergencyName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile <span class="required">*</span></label>
+                                        <input type="tel" id="emergencyMobile" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Address <span class="required">*</span></label>
+                                    <textarea id="emergencyAddress" rows="3" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stage 6: Declaration & CAPTCHA -->
+                        <div id="fresh_stage6" class="form-stage">
+                            <div class="declaration-box">
+                                <h3 style="color: #e65100; margin-bottom: 15px;">Self Declaration</h3>
+                                <p>I hereby declare that the information provided is true and correct.</p>
+                                
+                                <div class="declaration-actions">
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('fresh')">✓ Confirm</button>
+                                    <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
+                                </div>
+                            </div>
+
+                            <div id="verificationSection" style="display: none;">
+                                <div class="captcha-container">
+                                    <p><strong>Enter CAPTCHA:</strong></p>
+                                    <div class="captcha-image" id="captchaCode"></div>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('fresh')">🔄 Refresh</button>
+                                    <input type="text" id="captchaInput" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
+                                </div>
+                                
+                                <button type="button" class="btn-primary" onclick="verifyAndSubmit()">Verify & Submit</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PCC STAGES (5 stages) -->
+                    <div id="pccStages" style="display: none;">
+                        <div id="pcc_stage1" class="form-stage">
+                            <div class="form-section">
+                                <h3>Passport Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Passport Number <span class="required">*</span></label>
+                                        <input type="text" id="pccPassportNumber" class="passportNumber" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date of Issue <span class="required">*</span></label>
+                                        <input type="date" id="pccPassportDate" class="passportDate" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Country <span class="required">*</span></label>
+                                    <input type="text" id="pccCountry" class="pccCountry" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pcc_stage2" class="form-stage">
+                            <div class="form-section">
+                                <h3>Applicant Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Given Name <span class="required">*</span></label>
+                                        <input type="text" class="givenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Surname</label>
+                                        <input type="text" class="surname">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Gender <span class="required">*</span></label>
+                                        <select class="gender" required>
+                                            <option value="">Select</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Transgender">Transgender</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date of Birth <span class="required">*</span></label>
+                                        <input type="date" class="dob" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Place of Birth <span class="required">*</span></label>
+                                        <input type="text" class="placeOfBirth" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Marital Status <span class="required">*</span></label>
+                                        <select class="maritalStatus" required>
+                                            <option value="">Select</option>
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Citizenship <span class="required">*</span></label>
+                                        <select class="citizenship" required>
+                                            <option value="">Select</option>
+                                            <option value="Birth">Birth</option>
+                                            <option value="Descent">Descent</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Employment <span class="required">*</span></label>
+                                        <select class="employment" required>
+                                            <option value="">Select</option>
+                                            <option value="Government">Government</option>
+                                            <option value="Private">Private</option>
+                                            <option value="Student">Student</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Education <span class="required">*</span></label>
+                                    <select class="education" required>
+                                        <option value="">Select</option>
+                                        <option value="10th Pass And Above">10th Pass And Above</option>
+                                        <option value="Graduate And Above">Graduate And Above</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pcc_stage3" class="form-stage">
+                            <div class="form-section">
+                                <h3>Family Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Father's Given Name <span class="required">*</span></label>
+                                        <input type="text" class="fatherGivenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Father's Surname</label>
+                                        <input type="text" class="fatherSurname">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Mother's Given Name <span class="required">*</span></label>
+                                        <input type="text" class="motherGivenName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mother's Surname</label>
+                                        <input type="text" class="motherSurname">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pcc_stage4" class="form-stage">
+                            <div class="form-section">
+                                <h3>Address Details</h3>
+                                
+                                <div class="form-group">
+                                    <label>House No. and Street <span class="required">*</span></label>
+                                    <input type="text" class="houseNo" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>City <span class="required">*</span></label>
+                                        <input type="text" class="city" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>PIN Code <span class="required">*</span></label>
+                                        <input type="text" class="pincode" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>State <span class="required">*</span></label>
+                                        <select class="state" required>
+                                            <option value="">Select</option>
+                                            <option value="AP">Andhra Pradesh</option>
+                                            <option value="TN">Tamil Nadu</option>
+                                            <option value="KA">Karnataka</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile <span class="required">*</span></label>
+                                        <input type="tel" class="mobile" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Email <span class="required">*</span></label>
+                                    <input type="email" class="email" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pcc_stage5" class="form-stage">
+                            <div class="declaration-box">
+                                <h3 style="color: #e65100; margin-bottom: 15px;">Self Declaration</h3>
+                                <p>I declare that all information provided is accurate.</p>
+                                
+                                <div class="declaration-actions">
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('pcc')">✓ Confirm</button>
+                                    <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
+                                </div>
+                            </div>
+
+                            <div id="pccVerificationSection" style="display: none;">
+                                <div class="captcha-container">
+                                    <p><strong>Enter CAPTCHA:</strong></p>
+                                    <div class="captcha-image" id="pccCaptchaCode"></div>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('pcc')">🔄 Refresh</button>
+                                    <input type="text" class="captchaInput" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
+                                </div>
+                                
+                                <button type="button" class="btn-primary" onclick="verifyAndSubmit()">Verify & Submit</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IDENTITY STAGES (5 stages) -->
+                    <div id="identityStages" style="display: none;">
+                        <div id="identity_stage1" class="form-stage">
+                            <div class="form-section">
+                                <h3>Applicant Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Given Name <span class="required">*</span></label>
+                                        <input type="text" class="givenName2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Surname</label>
+                                        <input type="text" class="surname2">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Gender <span class="required">*</span></label>
+                                        <select class="gender2" required>
+                                            <option value="">Select</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Transgender">Transgender</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date of Birth <span class="required">*</span></label>
+                                        <input type="date" class="dob2" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Place of Birth <span class="required">*</span></label>
+                                        <input type="text" class="placeOfBirth2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Marital Status <span class="required">*</span></label>
+                                        <select class="maritalStatus2" required>
+                                            <option value="">Select</option>
+                                            <option value="Single">Single</option>
+                                            <option value="Married">Married</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Citizenship <span class="required">*</span></label>
+                                        <select class="citizenship2" required>
+                                            <option value="">Select</option>
+                                            <option value="Birth">Birth</option>
+                                            <option value="Descent">Descent</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Employment <span class="required">*</span></label>
+                                        <select class="employment2" required>
+                                            <option value="">Select</option>
+                                            <option value="Government">Government</option>
+                                            <option value="Private">Private</option>
+                                            <option value="Student">Student</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Education <span class="required">*</span></label>
+                                    <select class="education2" required>
+                                        <option value="">Select</option>
+                                        <option value="10th Pass And Above">10th Pass And Above</option>
+                                        <option value="Graduate And Above">Graduate And Above</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="identity_stage2" class="form-stage">
+                            <div class="form-section">
+                                <h3>Family Details</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Father's Given Name <span class="required">*</span></label>
+                                        <input type="text" class="fatherGivenName2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Father's Surname</label>
+                                        <input type="text" class="fatherSurname2">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Mother's Given Name <span class="required">*</span></label>
+                                        <input type="text" class="motherGivenName2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mother's Surname</label>
+                                        <input type="text" class="motherSurname2">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="identity_stage3" class="form-stage">
+                            <div class="form-section">
+                                <h3>Address Details</h3>
+                                
+                                <div class="form-group">
+                                    <label>House No. and Street <span class="required">*</span></label>
+                                    <input type="text" class="houseNo2" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>City <span class="required">*</span></label>
+                                        <input type="text" class="city2" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>PIN Code <span class="required">*</span></label>
+                                        <input type="text" class="pincode2" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>State <span class="required">*</span></label>
+                                        <select class="state2" required>
+                                            <option value="">Select</option>
+                                            <option value="AP">Andhra Pradesh</option>
+                                            <option value="TN">Tamil Nadu</option>
+                                            <option value="KA">Karnataka</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile <span class="required">*</span></label>
+                                        <input type="tel" class="mobile2" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Email <span class="required">*</span></label>
+                                    <input type="email" class="email2" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="identity_stage4" class="form-stage">
+                            <div class="form-section">
+                                <h3>Previous Identity Certificate</h3>
+                                
+                                <div class="form-group">
+                                    <label>Have you held an Identity Certificate before? <span class="required">*</span></label>
+                                    <div class="radio-group">
+                                        <label><input type="radio" name="previousIC" value="no"> No</label>
+                                        <label><input type="radio" name="previousIC" value="yes"> Yes</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="identity_stage5" class="form-stage">
+                            <div class="declaration-box">
+                                <h3 style="color: #e65100; margin-bottom: 15px;">Self Declaration</h3>
+                                <p>I declare that all information provided is accurate.</p>
+                                
+                                <div class="declaration-actions">
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('identity')">✓ Confirm</button>
+                                    <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
+                                </div>
+                            </div>
+
+                            <div id="identityVerificationSection" style="display: none;">
+                                <div class="captcha-container">
+                                    <p><strong>Enter CAPTCHA:</strong></p>
+                                    <div class="captcha-image" id="identityCaptchaCode"></div>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('identity')">🔄 Refresh</button>
+                                    <input type="text" class="captchaInput2" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
+                                </div>
+                                
+                                <button type="button" class="btn-primary" onclick="verifyAndSubmit()">Verify & Submit</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" id="prevBtn" onclick="prevStage()" style="display: none;">◀ Previous</button>
+                        <button type="button" class="btn-primary" id="nextBtn" onclick="nextStage()">Next ▶</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="success-icon">✅</div>
+            <h2>Application Submitted!</h2>
+            <p style="margin: 20px 0; font-size: 18px; color: #003d82;">
+                <strong>Your passport will be received in 30 days</strong>
+            </p>
+            <div style="background: #f0f0f0; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                <strong>Reference Number:</strong><br>
+                <span id="refNumber" style="font-size: 20px; color: #0066cc;"></span>
+            </div>
+            <p style="font-size: 14px; color: #666;">A confirmation email has been sent to your email address with the application details and link to track your application.</p>
+            <button class="btn-primary" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentStage = 1;
+        let totalStages = 6;
+        let currentAppType = 'fresh';
+        let captchaCode = '';
+        let currentUser = null;
+        let currentUserName = '';
+        let allFormData = {};
+
+        const stageCounts = {
+            'fresh': 6,
+            'reissue': 6,
+            'pcc': 5,
+            'identity': 5
+        };
+
+        // Auto-login and auto-fill
+        window.addEventListener('load', function() {
+            console.log('🌐 Mock website loaded');
+            
+            // Check if this is being opened directly by user or from automation
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromAutomation = urlParams.has('automation');
+            
+            if (isFromAutomation) {
+                console.log('🤖 Opened from automation, checking for automation data...');
+                const automationData = localStorage.getItem('automation_data');
+                if (automationData) {
+                    const data = JSON.parse(automationData);
+                    console.log('📦 Found automation data:', data);
+                    
+                    // Check timestamp is fresh (within 30 seconds)
+                    if (Date.now() - data.timestamp < 30000) {
+                        console.log('⏰ Timestamp valid, starting auto-login...');
+                        setTimeout(() => autoLogin(data), 1000);
+                    } else {
+                        console.log('⏰ Timestamp expired, clearing data');
+                        localStorage.removeItem('automation_data');
+                    }
+                } else {
+                    console.log('❌ No automation data found');
+                }
+            } else {
+                console.log('👤 Opened directly by user - normal mode');
+                // Clear any old automation data to prevent interference
+                localStorage.removeItem('automation_data');
+            }
+        });
+
+        async function autoLogin(data) {
+            console.log('🤖 ========== AUTO-LOGIN STARTED ==========');
+            console.log('📦 Received data:', data);
+            console.log('🎯 CRITICAL: Application type from data:', data.applicationType);
+            
+            try {
+                console.log('📝 Step 1: Filling login fields...');
+                document.getElementById('loginName').value = data.loginName;
+                document.getElementById('loginEmail').value = data.loginEmail;
+                document.getElementById('loginPassword').value = data.loginPassword;
+                console.log('✅ Login fields filled');
+                
+                await sleep(500);
+                
+                console.log('📝 Step 2: Setting user data...');
+                currentUser = data.loginEmail;
+                currentUserName = data.loginName;
+                console.log('✅ User data set:', currentUserName);
+                
+                console.log('📝 Step 3: Switching to main app...');
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').textContent = data.loginName;
+                document.getElementById('welcomeName').textContent = data.loginName;
+                console.log('✅ Switched to main app');
+                
+                console.log('📝 Step 4: Loading applications...');
+                loadApplications();
+                console.log('✅ Applications loaded');
+                
+                await sleep(1000);
+                
+                console.log('📝 Step 5: Opening services page...');
+                showPage(null, 'services');
+                console.log('✅ Services page opened');
+                
+                await sleep(1000);
+                
+                console.log('📝 Step 6: Starting application...');
+                console.log('🎯 USING Application type:', data.applicationType);
+                
+                // CRITICAL FIX: Use data.applicationType, not some other variable
+                const appType = data.applicationType;
+                console.log('🎯 Starting application with type:', appType);
+                
+                startApplication(appType);
+                console.log('✅ Application started for:', appType);
+                
+                await sleep(2000);  // Increased wait time
+                
+                console.log('📝 Step 7: Starting auto-fill...');
+                await autoFillAllStages(data);
+                console.log('✅ Auto-fill completed');
+                
+            } catch (error) {
+                console.error('❌ ERROR in autoLogin:', error);
+                console.error('Error stack:', error.stack);
+            }
+        }
+
+        async function autoFillAllStages(data) {
+            console.log('🤖 Auto-filling all stages...');
+            
+            for (let stage = 1; stage <= totalStages; stage++) {
+                console.log(`📝 Filling stage ${stage}/${totalStages}...`);
+                await fillCurrentStage(data);
+                await sleep(800);
+                
+                if (stage < totalStages) {
+                    console.log(`➡️ Moving to next stage...`);
+                    nextStage();
+                    await sleep(800);
+                }
+            }
+            
+            console.log('✅ Auto-fill complete! Waiting for CAPTCHA...');
+            console.log('📤 Sending CAPTCHA to parent window...');
+            console.log('CAPTCHA Code:', captchaCode);
+            
+            // Send to parent window (iframe to parent)
+            try {
+                if (window.parent && window.parent !== window) {
+                    console.log('✉️ Sending to parent window...');
+                    window.parent.postMessage({
+                        type: 'AUTOMATION_PAUSED',
+                        captcha: captchaCode,
+                        stage: 'captcha'
+                    }, '*');
+                    console.log('✅ Message sent to parent');
+                } else {
+                    console.log('⚠️ No parent window available');
+                }
+            } catch (e) {
+                console.error('❌ Error sending message:', e);
+            }
+        }
+
+        async function fillCurrentStage(data) {
+            console.log(`📄 Filling stage ${currentStage}/${totalStages}...`);
+            console.log('📝 Data to fill:', data);
+            
+            await sleep(500);
+            
+            const fieldMap = {
+                givenName: ['#givenName', '.givenName', '.givenName2'],
+                surname: ['#surname', '.surname', '.surname2'],
+                dob: ['#dob', '.dob', '.dob2'],
+                gender: ['#gender', '.gender', '.gender2'],
+                placeOfBirth: ['#placeOfBirth', '.placeOfBirth', '.placeOfBirth2'],
+                maritalStatus: ['#maritalStatus', '.maritalStatus', '.maritalStatus2'],
+                citizenship: ['#citizenship', '.citizenship', '.citizenship2'],
+                employment: ['#employment', '.employment', '.employment2'],
+                education: ['#education', '.education', '.education2'],
+                fatherGivenName: ['#fatherGivenName', '.fatherGivenName', '.fatherGivenName2'],
+                fatherSurname: ['#fatherSurname', '.fatherSurname', '.fatherSurname2'],
+                motherGivenName: ['#motherGivenName', '.motherGivenName', '.motherGivenName2'],
+                motherSurname: ['#motherSurname', '.motherSurname', '.motherSurname2'],
+                houseNo: ['#houseNo', '.houseNo', '.houseNo2'],
+                city: ['#city', '.city', '.city2'],
+                pincode: ['#pincode', '.pincode', '.pincode2'],
+                state: ['#state', '.state', '.state2'],
+                mobile: ['#mobile', '.mobile', '.mobile2'],
+                email: ['#email', '.email', '.email2'],
+                emergencyName: ['#emergencyName'],
+                emergencyMobile: ['#emergencyMobile'],
+                emergencyAddress: ['#emergencyAddress'],
+                passportNumber: ['#pccPassportNumber', '.passportNumber'],
+                passportDate: ['#pccPassportDate', '.passportDate'],
+                pccCountry: ['#pccCountry', '.pccCountry']
+            };
+
+            let filledCount = 0;
+            
+            for (const [field, selectors] of Object.entries(fieldMap)) {
+                if (data[field]) {
+                    let filled = false;
+                    for (const selector of selectors) {
+                        const elements = document.querySelectorAll(selector);
+                        
+                        for (const el of elements) {
+                            if (el && el.offsetParent !== null) {
+                                el.value = data[field];
+                                el.setAttribute('value', data[field]);
+                                
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                                el.dispatchEvent(new Event('change', { bubbles: true }));
+                                el.dispatchEvent(new Event('blur', { bubbles: true }));
+                                
+                                el.classList.add('auto-filling');
+                                
+                                await sleep(100);
+                                
+                                if (el.value === data[field]) {
+                                    console.log(`✅ ${field} = ${data[field]} (${selector})`);
+                                    filledCount++;
+                                    filled = true;
+                                    el.classList.remove('auto-filling');
+                                    break;
+                                } else {
+                                    el.value = data[field];
+                                    await sleep(50);
+                                    if (el.value === data[field]) {
+                                        console.log(`✅ ${field} = ${data[field]} (retry)`);
+                                        filledCount++;
+                                        filled = true;
+                                        el.classList.remove('auto-filling');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (filled) break;
+                    }
+                    
+                    if (!filled) {
+                        console.error(`❌ Failed to fill: ${field}`);
+                    }
+                }
+            }
+
+            // Fill radio buttons
+            if (data.serviceType) {
+                const r = document.querySelector(`input[name="applicationType"][value="${data.serviceType}"]`);
+                if (r && r.offsetParent !== null) {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`✅ serviceType = ${data.serviceType}`);
+                    filledCount++;
+                }
+            }
+            if (data.bookletType) {
+                const r = document.querySelector(`input[name="bookletType"][value="${data.bookletType}"]`);
+                if (r && r.offsetParent !== null) {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`✅ bookletType = ${data.bookletType}`);
+                    filledCount++;
+                }
+            }
+            if (data.nonECR) {
+                const r = document.querySelector(`input[name="nonECR"][value="${data.nonECR}"]`);
+                if (r && r.offsetParent !== null) {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`✅ nonECR = ${data.nonECR}`);
+                    filledCount++;
+                }
+            }
+            if (data.previousIC) {
+                const r = document.querySelector(`input[name="previousIC"][value="${data.previousIC}"]`);
+                if (r && r.offsetParent !== null) {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`✅ previousIC = ${data.previousIC}`);
+                    filledCount++;
+                }
+            }
+            
+            console.log(`📊 Filled ${filledCount} fields in stage ${currentStage}`);
+            
+            await sleep(300);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        window.addEventListener('message', function(event) {
+            console.log('📨 Received message:', event.data);
+            if (event.data.type === 'SUBMIT_APPLICATION') {
+                console.log('✅ Submission command from assistant');
+                
+                localStorage.setItem('automation_in_progress', 'true');
+                
+                setTimeout(() => {
+                    verifyAndSubmit();
+                    localStorage.removeItem('automation_in_progress');
+                }, 500);
+            }
+        });
+
+        function handleLogin(event) {
+            event.preventDefault();
+            currentUserName = document.getElementById('loginName').value;
+            currentUser = document.getElementById('loginEmail').value;
+            
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('userName').textContent = currentUserName;
+            document.getElementById('welcomeName').textContent = currentUserName;
+            
+            loadApplications();
+        }
+
+        function logout() {
+            if (confirm('Logout?')) {
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'block';
+                currentUser = null;
+                currentUserName = '';
+            }
+        }
+
+        function showPage(event, page) {
+            if (event) event.preventDefault();
+            
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+            
+            const pageMap = {
+                'home': 'homePage',
+                'services': 'servicesPage',
+                'applications': 'applicationsPage',
+                'track': 'trackPage',
+                'fees': 'feesPage'
+            };
+            
+            document.getElementById(pageMap[page]).classList.add('active');
+            
+            if (event) {
+                event.target.classList.add('active');
+            }
+            
+            if (page === 'applications') {
+                loadApplications();
+            } else if (page === 'track') {
+                loadTracking();
+            } else if (page === 'home') {
+                loadApplications();
+            }
+        }
+
+        function startApplication(type) {
+            console.log('🎯 Starting application:', type);
+            
+            // Clean up ALL previous states
+            hideAllVerificationSections();
+            resetAllDeclarationButtons();
+            resetForm();
+            
+            currentAppType = type;
+            totalStages = stageCounts[type];
+            currentStage = 1;
+            
+            document.getElementById('servicesPage').classList.remove('active');
+            document.getElementById('applicationPage').classList.add('active');
+            
+            const titles = {
+                'fresh': 'Fresh Passport Application',
+                'reissue': 'Re-issue Passport Application',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+            document.getElementById('appTitle').textContent = titles[type];
+            
+            // Hide all stages
+            document.querySelectorAll('.form-stage').forEach(stage => {
+                stage.classList.remove('active');
+            });
+            
+            // Hide all form containers
+            document.getElementById('freshStages').style.display = 'none';
+            document.getElementById('pccStages').style.display = 'none';
+            document.getElementById('identityStages').style.display = 'none';
+            
+            // Show correct form
+            if (type === 'fresh' || type === 'reissue') {
+                document.getElementById('freshStages').style.display = 'block';
+                document.getElementById('fresh_stage1').classList.add('active');
+            } else if (type === 'pcc') {
+                document.getElementById('pccStages').style.display = 'block';
+                document.getElementById('pcc_stage1').classList.add('active');
+            } else if (type === 'identity') {
+                document.getElementById('identityStages').style.display = 'block';
+                document.getElementById('identity_stage1').classList.add('active');
+            }
+            
+            updateButtons();
+            refreshCaptcha(type);
+            
+            console.log(`✅ ${type} application started`);
+        }
+
+        function nextStage() {
+            const stageId = currentAppType === 'reissue' ? 'fresh' : currentAppType;
+            document.getElementById(`${stageId}_stage${currentStage}`).classList.remove('active');
+            currentStage++;
+            if (currentStage > totalStages) currentStage = totalStages;
+            
+            document.getElementById(`${stageId}_stage${currentStage}`).classList.add('active');
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+
+        function prevStage() {
+            const stageId = currentAppType === 'reissue' ? 'fresh' : currentAppType;
+            document.getElementById(`${stageId}_stage${currentStage}`).classList.remove('active');
+            currentStage--;
+            if (currentStage < 1) currentStage = 1;
+            
+            document.getElementById(`${stageId}_stage${currentStage}`).classList.add('active');
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').style.display = currentStage > 1 ? 'block' : 'none';
+            document.getElementById('nextBtn').style.display = currentStage < totalStages ? 'block' : 'none';
+        }
+
+        function confirmDeclaration(type) {
+            console.log('🔐 Confirming declaration for:', type);
+            
+            const verificationId = type === 'fresh' || type === 'reissue' ? 'verificationSection' : 
+                                 type === 'pcc' ? 'pccVerificationSection' : 'identityVerificationSection';
+            
+            const section = document.getElementById(verificationId);
+            if (section) {
+                section.style.display = 'block';
+                console.log('✅ Showing verification section:', verificationId);
+            }
+            
+            // Disable button
+            event.target.disabled = true;
+            event.target.style.background = '#ccc';
+            
+            // Generate fresh CAPTCHA for THIS form
+            refreshCaptcha(type);
+        }
+
+        function exitApplication() {
+            if (confirm('Exit application? All data will be lost.')) {
+                resetForm();
+                showPage(null, 'services');
+            }
+        }
+
+        function refreshCaptcha(type) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            captchaCode = '';
+            for (let i = 0; i < 6; i++) {
+                captchaCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            console.log(`🔐 Generated CAPTCHA for ${type}:`, captchaCode);
+            
+            // Update the correct CAPTCHA display
+            if (type === 'fresh' || type === 'reissue') {
+                const el = document.getElementById('captchaCode');
+                if (el) el.textContent = captchaCode;
+            } else if (type === 'pcc') {
+                const el = document.getElementById('pccCaptchaCode');
+                if (el) el.textContent = captchaCode;
+            } else if (type === 'identity') {
+                const el = document.getElementById('identityCaptchaCode');
+                if (el) el.textContent = captchaCode;
+            }
+        }
+
+        function getAllFormData() {
+            const data = {
+                type: currentAppType
+            };
+
+            console.log('📊 Collecting form data for:', currentAppType);
+
+            // ID-based fields
+            const idFields = {
+                'givenName': 'givenName',
+                'surname': 'surname',
+                'dob': 'dob',
+                'gender': 'gender',
+                'placeOfBirth': 'placeOfBirth',
+                'maritalStatus': 'maritalStatus',
+                'citizenship': 'citizenship',
+                'employment': 'employment',
+                'education': 'education',
+                'fatherGivenName': 'fatherGivenName',
+                'fatherSurname': 'fatherSurname',
+                'motherGivenName': 'motherGivenName',
+                'motherSurname': 'motherSurname',
+                'houseNo': 'houseNo',
+                'city': 'city',
+                'pincode': 'pincode',
+                'state': 'state',
+                'mobile': 'mobile',
+                'email': 'email',
+                'emergencyName': 'emergencyName',
+                'emergencyMobile': 'emergencyMobile',
+                'emergencyAddress': 'emergencyAddress'
+            };
+            
+            Object.entries(idFields).forEach(([fieldId, dataKey]) => {
+                const el = document.getElementById(fieldId);
+                if (el && el.value && el.value.trim()) {
+                    data[dataKey] = el.value.trim();
+                    console.log(`✅ ID: ${dataKey} = ${el.value.trim()}`);
+                }
+            });
+            
+            // Class-based fields for PCC
+            if (currentAppType === 'pcc') {
+                const pccFields = {
+                    '.givenName': 'givenName',
+                    '.surname': 'surname',
+                    '.dob': 'dob',
+                    '.gender': 'gender',
+                    '.placeOfBirth': 'placeOfBirth',
+                    '.maritalStatus': 'maritalStatus',
+                    '.citizenship': 'citizenship',
+                    '.employment': 'employment',
+                    '.education': 'education',
+                    '.fatherGivenName': 'fatherGivenName',
+                    '.fatherSurname': 'fatherSurname',
+                    '.motherGivenName': 'motherGivenName',
+                    '.motherSurname': 'motherSurname',
+                    '.houseNo': 'houseNo',
+                    '.city': 'city',
+                    '.pincode': 'pincode',
+                    '.state': 'state',
+                    '.mobile': 'mobile',
+                    '.email': 'email'
+                };
+                
+                Object.entries(pccFields).forEach(([selector, dataKey]) => {
+                    if (!data[dataKey]) {
+                        const el = document.querySelector(selector);
+                        if (el && el.value && el.value.trim()) {
+                            data[dataKey] = el.value.trim();
+                            console.log(`✅ PCC Class: ${dataKey} = ${el.value.trim()}`);
+                        }
+                    }
+                });
+                
+                // PCC-specific fields
+                const pccPassportNum = document.getElementById('pccPassportNumber') || document.querySelector('.passportNumber');
+                if (pccPassportNum && pccPassportNum.value) {
+                    data.passportNumber = pccPassportNum.value.trim();
+                    console.log(`✅ PCC Passport Number = ${pccPassportNum.value.trim()}`);
+                }
+                
+                const pccPassportDate = document.getElementById('pccPassportDate') || document.querySelector('.passportDate');
+                if (pccPassportDate && pccPassportDate.value) {
+                    data.passportDate = pccPassportDate.value.trim();
+                    console.log(`✅ PCC Passport Date = ${pccPassportDate.value.trim()}`);
+                }
+                
+                const pccCountry = document.getElementById('pccCountry') || document.querySelector('.pccCountry');
+                if (pccCountry && pccCountry.value) {
+                    data.pccCountry = pccCountry.value.trim();
+                    console.log(`✅ PCC Country = ${pccCountry.value.trim()}`);
+                }
+            }
+            
+            // Class-based fields for Identity
+            if (currentAppType === 'identity') {
+                const identityFields = {
+                    '.givenName2': 'givenName',
+                    '.surname2': 'surname',
+                    '.dob2': 'dob',
+                    '.gender2': 'gender',
+                    '.placeOfBirth2': 'placeOfBirth',
+                    '.maritalStatus2': 'maritalStatus',
+                    '.citizenship2': 'citizenship',
+                    '.employment2': 'employment',
+                    '.education2': 'education',
+                    '.fatherGivenName2': 'fatherGivenName',
+                    '.fatherSurname2': 'fatherSurname',
+                    '.motherGivenName2': 'motherGivenName',
+                    '.motherSurname2': 'motherSurname',
+                    '.houseNo2': 'houseNo',
+                    '.city2': 'city',
+                    '.pincode2': 'pincode',
+                    '.state2': 'state',
+                    '.mobile2': 'mobile',
+                    '.email2': 'email'
+                };
+                
+                Object.entries(identityFields).forEach(([selector, dataKey]) => {
+                    if (!data[dataKey]) {
+                        const el = document.querySelector(selector);
+                        if (el && el.value && el.value.trim()) {
+                            data[dataKey] = el.value.trim();
+                            console.log(`✅ Identity Class: ${dataKey} = ${el.value.trim()}`);
+                        }
+                    }
+                });
+            }
+            
+            // Radio buttons
+            const radioGroups = ['applicationType', 'bookletType', 'nonECR', 'previousIC'];
+            radioGroups.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                if (checked) {
+                    data[name] = checked.value;
+                    console.log(`✅ Radio: ${name} = ${checked.value}`);
+                }
+            });
+
+            console.log('📦 Final data:', data);
+            return data;
+        }
+
+        function verifyAndSubmit() {
+            console.log('🔍 Verifying and submitting...');
+            console.log('Current App Type:', currentAppType);
+            console.log('Expected CAPTCHA:', captchaCode);
+            
+            // Get correct CAPTCHA input
+            let captchaInput;
+            if (currentAppType === 'fresh' || currentAppType === 'reissue') {
+                captchaInput = document.getElementById('captchaInput');
+            } else if (currentAppType === 'pcc') {
+                captchaInput = document.querySelector('#pccVerificationSection .captchaInput');
+            } else if (currentAppType === 'identity') {
+                captchaInput = document.querySelector('#identityVerificationSection .captchaInput2');
+            }
+            
+            if (!captchaInput) {
+                console.error('❌ CAPTCHA input not found for', currentAppType);
+                alert('Error: CAPTCHA input not found. Please refresh.');
+                return;
+            }
+            
+            const userInput = captchaInput.value.toUpperCase().trim();
+            console.log('User entered:', userInput);
+            
+            if (!userInput) {
+                alert('⚠️ Please enter the CAPTCHA code!');
+                captchaInput.focus();
+                return;
+            }
+            
+            if (userInput !== captchaCode.toUpperCase()) {
+                alert('❌ Invalid CAPTCHA! Please try again.');
+                captchaInput.value = '';
+                captchaInput.focus();
+                return;
+            }
+            
+            console.log('✅ CAPTCHA verified for', currentAppType);
+            
+            allFormData = getAllFormData();
+            
+            console.log('📦 Form data collected:', allFormData);
+            console.log('📋 Submitting type:', currentAppType);
+
+            let applicantName = '';
+            const givenNameEl = document.getElementById('givenName') || 
+                              document.querySelector('.givenName') || 
+                              document.querySelector('.givenName2');
+            const surnameEl = document.getElementById('surname') || 
+                            document.querySelector('.surname') || 
+                            document.querySelector('.surname2');
+            
+            if (givenNameEl && givenNameEl.value) {
+                applicantName = givenNameEl.value + (surnameEl && surnameEl.value ? ' ' + surnameEl.value : '');
+            } else {
+                applicantName = currentUserName || 'Unknown User';
+            }
+
+            const emailEl = document.getElementById('email') || 
+                          document.querySelector('.email') || 
+                          document.querySelector('.email2');
+            const userEmail = emailEl && emailEl.value ? emailEl.value : currentUser;
+
+            const refNum = 'ARN' + Date.now().toString().slice(-10);
+            
+            const fee = calculateApplicationFee(allFormData);
+            
+            const app = {
+                type: currentAppType,
+                referenceNumber: refNum,
+                applicantName: applicantName.trim(),
+                submissionDate: new Date().toLocaleDateString('en-GB'),
+                submissionTimestamp: Date.now(),
+                status: 'Submitted',
+                email: userEmail,
+                fee: fee,
+                fullData: allFormData
+            };
+            
+            console.log('💾 Saving application:', app);
+            
+            let applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            applications.push(app);
+            localStorage.setItem('submitted_applications', JSON.stringify(applications));
+            
+            sendEmailNotification(userEmail, refNum, currentAppType, applicantName.trim(), allFormData);
+            
+            localStorage.removeItem('automation_data');
+            
+            // Clean up
+            hideAllVerificationSections();
+            resetAllDeclarationButtons();
+            resetForm();
+            
+            // Refresh CAPTCHA for next use
+            refreshCaptcha(currentAppType);
+            
+            const isAutomation = localStorage.getItem('automation_in_progress');
+            if (!isAutomation) {
+                document.getElementById('refNumber').textContent = refNum;
+                document.getElementById('successModal').classList.add('show');
+            }
+            
+            console.log('✅ Application submitted successfully');
+        }
+
+        function hideAllVerificationSections() {
+            console.log('🧹 Hiding all verification sections...');
+            
+            const sections = ['verificationSection', 'pccVerificationSection', 'identityVerificationSection'];
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                if (section) {
+                    section.style.display = 'none';
+                }
+            });
+            
+            const allInputs = [
+                document.getElementById('captchaInput'),
+                document.querySelector('#pccVerificationSection .captchaInput'),
+                document.querySelector('#identityVerificationSection .captchaInput2')
+            ];
+            
+            allInputs.forEach(input => {
+                if (input) {
+                    input.value = '';
+                    input.disabled = false;
+                    input.style.background = '';
+                }
+            });
+            
+            console.log('✅ All verification sections hidden');
+        }
+
+        function resetAllDeclarationButtons() {
+            console.log('🔄 Resetting declaration buttons...');
+            
+            const confirmButtons = document.querySelectorAll('.btn-confirm');
+            confirmButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.background = '';
+            });
+            
+            console.log('✅ Declaration buttons reset');
+        }
+
+        function resetForm() {
+            console.log('🔄 Resetting form...');
+            
+            document.getElementById('applicationForm').reset();
+            const allInputs = document.querySelectorAll('input, select, textarea');
+            allInputs.forEach(input => {
+                if (input.type === 'radio' || input.type === 'checkbox') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            currentStage = 1;
+            
+            console.log('✅ Form reset');
+        }
+
+        function calculateApplicationFee(data) {
+            let amount = 0;
+            let note = '';
+            
+            const dobValue = data.dob || '';
+            if (dobValue) {
+                const dob = new Date(dobValue);
+                const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                
+                if (currentAppType === 'fresh' || currentAppType === 'reissue') {
+                    const booklet = data.bookletType || '36';
+                    const serviceType = data.applicationType || 'normal';
+                    
+                    if (serviceType === 'normal') {
+                        amount = booklet === '36' ? 1500 : 2000;
+                    } else {
+                        amount = booklet === '36' ? 3500 : 4000;
+                    }
+                    
+                    if (age < 18 || age > 60) {
+                        amount = amount * 0.9;
+                        note = '10% discount for Minor/Senior';
+                    }
+                } else if (currentAppType === 'pcc') {
+                    amount = 500;
+                    note = 'Fixed fee for PCC';
+                } else if (currentAppType === 'identity') {
+                    amount = 300;
+                    note = 'Fixed fee for Identity Certificate';
+                }
+            } else {
+                if (currentAppType === 'fresh' || currentAppType === 'reissue') {
+                    amount = 1500;
+                } else if (currentAppType === 'pcc') {
+                    amount = 500;
+                } else if (currentAppType === 'identity') {
+                    amount = 300;
+                }
+            }
+            
+            return { amount: Math.round(amount), note };
+        }
+
+        function sendEmailNotification(email, refNum, type, name, formData) {
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+            
+            const websiteLink = window.location.href.split('?')[0];
+            const mobile = formData.mobile || 'Not provided';
+            const fee = calculateApplicationFee(formData);
+            
+            const templateParams = {
+                to_email: email,
+                to_name: name,
+                application_type: typeLabels[type],
+                reference_number: refNum,
+                application_fee: `₹${fee.amount}`,
+                mobile_number: mobile,
+                submission_date: new Date().toLocaleDateString('en-GB'),
+                processing_days: '30 days',
+                tracking_link: websiteLink,
+                applicant_name: name
+            };
+            
+            emailjs.send('service_9ya085h', 'template_ms0nmhb', templateParams)
+                .then(function(response) {
+                    console.log('✅ Email sent!', response.status);
+                }, function(error) {
+                    console.error('❌ Email failed:', error);
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('show');
+            showPage(null, 'applications');
+            loadApplications();
+        }
+
+        function loadApplications() {
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+
+            const homeList = document.getElementById('homeApplicationsList');
+            if (applications.length === 0) {
+                homeList.innerHTML = '<p style="color: #666;">No applications yet</p>';
+            } else {
+                homeList.innerHTML = '';
+                applications.slice(-3).reverse().forEach(app => {
+                    homeList.innerHTML += `
+                        <div class="home-summary">
+                            <strong style="color: #003d82;">${typeLabels[app.type]}</strong> - ${app.applicantName}
+                            <br><span style="font-size: 13px; color: #666;">${app.submissionDate}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            const appContent = document.getElementById('applicationsContent');
+            if (applications.length === 0) {
+                appContent.innerHTML = '<p style="color: #666;">No applications yet</p>';
+            } else {
+                appContent.innerHTML = '';
+                applications.forEach((app, index) => {
+                    const data = app.fullData || {};
+                    
+                    const getValue = (val) => (val && val.trim() !== '') ? val : null;
+                    
+                    let detailRows = `
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Reference Number:</div>
+                            <div style="color: #0066cc; font-weight: bold;">${app.referenceNumber}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Applicant Name:</div>
+                            <div>${app.applicantName}</div>
+                        </div>
+                    `;
+                    
+                    const dob = getValue(data.dob);
+                    if (dob) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Date of Birth:</div>
+                                <div>${dob}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const gender = getValue(data.gender);
+                    if (gender) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Gender:</div>
+                                <div>${gender}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const email = getValue(app.email || data.email);
+                    if (email) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Email:</div>
+                                <div>${email}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const mobile = getValue(data.mobile);
+                    if (mobile) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Mobile:</div>
+                                <div>${mobile}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const houseNo = getValue(data.houseNo);
+                    const city = getValue(data.city);
+                    const state = getValue(data.state);
+                    const pincode = getValue(data.pincode);
+                    
+                    if (houseNo && city && state && pincode) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Address:</div>
+                                <div>${houseNo}, ${city}, ${state} - ${pincode}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (app.type === 'fresh' || app.type === 'reissue') {
+                        const booklet = getValue(data.bookletType);
+                        if (booklet) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Booklet Type:</div>
+                                    <div>${booklet} Pages</div>
+                                </div>
+                            `;
+                        }
+                        
+                        const serviceType = getValue(data.applicationType);
+                        if (serviceType) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Service Type:</div>
+                                    <div>${serviceType}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    if (app.type === 'pcc') {
+                        const passportNum = getValue(data.passportNumber);
+                        if (passportNum) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Passport Number:</div>
+                                    <div>${passportNum}</div>
+                                </div>
+                            `;
+                        }
+                        
+                        const country = getValue(data.pccCountry);
+                        if (country) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Country:</div>
+                                    <div>${country}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    detailRows += `
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Application Fee:</div>
+                            <div style="color: #2e7d32; font-weight: bold;">₹ ${app.fee ? app.fee.amount : '500'}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Submission Date:</div>
+                            <div>${app.submissionDate}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Status:</div>
+                            <div style="color: #4caf50; font-weight: bold;">${app.status}</div>
+                        </div>
+                    `;
+                    
+                    appContent.innerHTML += `
+                        <div class="app-detail-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h3 style="color: #003d82; border-bottom: 2px solid #0066cc; padding-bottom: 10px; margin: 0;">
+                                    ${typeLabels[app.type]}
+                                </h3>
+                                <div style="display: flex; gap: 10px;">
+                                    <button onclick="downloadApplicationPDF('${app.referenceNumber}')" style="background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                        ⬇️ Download
+                                    </button>
+                                    <button onclick="removeApplication(${index})" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                        🗑️ Remove
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            ${detailRows}
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function removeApplication(index) {
+            if (confirm('Remove this application?')) {
+                let applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+                applications.splice(index, 1);
+                localStorage.setItem('submitted_applications', JSON.stringify(applications));
+                
+                loadApplications();
+                loadTracking();
+                
+                alert('✅ Application removed!');
+            }
+        }
+
+        function downloadApplicationPDF(refNumber) {
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            const app = applications.find(a => a.referenceNumber === refNumber);
+            
+            if (!app) {
+                alert('Application not found!');
+                return;
+            }
+            
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+            
+            const data = app.fullData || {};
+            
+            const pdfContent = `
+┌────────────────────────────────────────────┐
+              PASSPORT SEVA
+        Ministry of External Affairs
+        Government of India
+└────────────────────────────────────────────┘
+
+APPLICATION TYPE: ${typeLabels[app.type]}
+
+┌────────────────────────────────────────────┐
+BASIC DETAILS
+└────────────────────────────────────────────┘
+
+Reference Number: ${app.referenceNumber}
+Applicant Name: ${app.applicantName}
+Date of Birth: ${data.dob || 'N/A'}
+Gender: ${data.gender || 'N/A'}
+Mobile: ${data.mobile || 'N/A'}
+Email: ${app.email}
+
+┌────────────────────────────────────────────┐
+ADDRESS DETAILS
+└────────────────────────────────────────────┘
+
+${data.houseNo || ''}
+${data.city || ''}, ${data.state || ''} - ${data.pincode || ''}
+
+┌────────────────────────────────────────────┐
+APPLICATION DETAILS
+└────────────────────────────────────────────┘
+
+Submission Date: ${app.submissionDate}
+Application Fee: ₹${app.fee ? app.fee.amount : 'N/A'}
+Status: ${app.status}
+Processing Time: 30 days
+
+┌────────────────────────────────────────────┐
+
+This is a computer-generated document.
+No signature is required.
+
+Generated on: ${new Date().toLocaleString('en-GB')}
+            `;
+            
+            const blob = new Blob([pdfContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Passport_Application_${refNumber}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('✅ Application downloaded!');
+        }
+
+        function loadTracking() {
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+
+            const trackContent = document.getElementById('trackContent');
+            if (applications.length === 0) {
+                trackContent.innerHTML = '<p style="color: #666;">No applications to track</p>';
+            } else {
+                trackContent.innerHTML = '';
+                applications.forEach((app, index) => {
+                    const submissionTime = app.submissionTimestamp || Date.now();
+                    const now = Date.now();
+                    const daysPassed = Math.floor((now - submissionTime) / (1000 * 60 * 60 * 24));
+                    const daysRemaining = Math.max(0, 30 - daysPassed);
+                    
+                    let statusMessage = '';
+                    let statusColor = '';
+                    
+                    if (daysRemaining > 0) {
+                        statusMessage = `Application being processed. Expected in ${daysRemaining} days.`;
+                        statusColor = '#1976d2';
+                        app.status = 'Under Processing';
+                    } else {
+                        statusMessage = 'Application verified and processed!';
+                        statusColor = '#4caf50';
+                        app.status = 'Verified';
+                    }
+                    
+                    trackContent.innerHTML += `
+                        <div class="app-detail-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h3 style="color: #003d82; margin: 0;">
+                                    ${typeLabels[app.type]} - ${app.applicantName}
+                                </h3>
+                                <button onclick="removeApplication(${index})" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                            
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Reference Number:</div>
+                                <div style="color: #0066cc; font-weight: bold;">${app.referenceNumber}</div>
+                            </div>
+                            
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Submitted On:</div>
+                                <div>${app.submissionDate}</div>
+                            </div>
+                            
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Days Passed:</div>
+                                <div><strong>${daysPassed}</strong> out of 30 days</div>
+                            </div>
+                            
+                            <div class="tracking-box">
+                                <h4 style="color: ${statusColor}; margin-bottom: 10px;">
+                                    ${daysRemaining > 0 ? 'Days Remaining' : 'Complete'}
+                                </h4>
+                                <div class="days-remaining" style="color: ${statusColor};">${daysRemaining}</div>
+                                <p style="font-size: 14px; color: #666; margin-top: 10px;">
+                                    ${statusMessage}
+                                </p>
+                                <div style="margin-top: 15px; background: ${daysRemaining > 0 ? '#e3f2fd' : '#e8f5e9'}; padding: 10px; border-radius: 4px;">
+                                    <strong>Status:</strong> 
+                                    <span style="color: ${daysRemaining > 0 ? '#1976d2' : '#4caf50'}; font-weight: bold;">
+                                        ${daysRemaining > 0 ? 'Under Processing' : 'Verified ✓'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                localStorage.setItem('submitted_applications', JSON.stringify(applications));
+            }
+        }
+
+        function updateFeeFields() {
+            const appType = document.getElementById('feeAppType').value;
+            const serviceTypeGroup = document.getElementById('feeServiceTypeGroup');
+            const bookletGroup = document.getElementById('feeBookletGroup');
+            
+            if (appType === 'fresh' || appType === 'reissue') {
+                serviceTypeGroup.style.display = 'block';
+                bookletGroup.style.display = 'block';
+            } else {
+                serviceTypeGroup.style.display = 'none';
+                bookletGroup.style.display = 'none';
+            }
+            
+            calculateFeeManual();
+        }
+
+        function calculateFeeManual() {
+            const appType = document.getElementById('feeAppType').value;
+            const serviceType = document.getElementById('feeServiceType').value;
+            const booklet = document.getElementById('feeBooklet').value;
+            const age = document.getElementById('feeAge').value;
+            
+            if (!appType || !age) return;
+
+            let amount = 0;
+            let note = '';
+
+            if (appType === 'fresh' || appType === 'reissue') {
+                if (serviceType === 'normal') {
+                    amount = booklet === '36' ? 1500 : 2000;
+                } else {
+                    amount = booklet === '36' ? 3500 : 4000;
+                }
+
+                if (age === 'minor' || age === 'senior') {
+                    amount = amount * 0.9;
+                    note = '10% discount for Minor/Senior citizen';
+                }
+            } else if (appType === 'pcc') {
+                amount = 500;
+                note = 'Fixed fee for PCC';
+            } else if (appType === 'identity') {
+                amount = 300;
+                note = 'Fixed fee for Identity Certificate';
+            }
+
+            document.getElementById('feeAmount').textContent = '₹ ' + Math.round(amount);
+            document.getElementById('feeNote').textContent = note;
+            document.getElementById('feeResult').classList.add('show');
+        }
+    </script>
+</body>
+</html>

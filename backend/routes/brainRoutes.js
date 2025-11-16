@@ -5,13 +5,8 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Initialize Google AI
-// Initialize Google AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// FIX: Use correct model name
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash"});
 
 // This is the "system prompt" that defines the AI's job
 const aiPrompt = `
@@ -19,7 +14,7 @@ You are an expert AI router for an Indian government services automation portal.
 Your ONLY job is to analyze the user's text and return a valid JSON object.
 NEVER respond with conversational text, only the JSON.
 
-You must identify one of these 4 tasks: 'search', 'register', 'transfer', 'update', or 'unknown'.
+You must identify one of these 5 tasks: 'search', 'register', 'transfer', 'update', 'passport_fresh', or 'unknown'.
 You must also extract these entities:
 - 'regNo': A vehicle registration number (e.g., "DL01AB1234", "MH14QL8220")
 - 'state': A 2-letter state code (e.g., "DL", "MH", "GJ")
@@ -56,16 +51,34 @@ AI: {
   "task": "update"
 }
 
+/* --- NEW EXAMPLES ADDED HERE --- */
+User: "i want to book a passport"
+AI: {
+  "task": "passport_fresh"
+}
+
+User: "apply for a new passport"
+AI: {
+  "task": "passport_fresh"
+}
+
+User: "passport application"
+AI: {
+  "task": "passport_fresh"
+}
+/* --- END OF NEW EXAMPLES --- */
+
+
 User: "hello"
 AI: {
   "task": "unknown",
-  "reply": "Hello! How can I help you today? You can ask me to 'search', 'register', 'transfer', or 'update' a vehicle."
+  "reply": "Hello! How can I help you today? I can assist with VAHAN vehicle services and new passport applications."
 }
 
-User: "i want to book a passport"
+User: "i want to check my bank balance"
 AI: {
   "task": "unknown",
-  "reply": "Sorry, I can only help with VAHAN vehicle services right now (search, register, transfer, update)."
+  "reply": "Sorry, I can only help with VAHAN and Passport services right now."
 }
 ---
 
@@ -88,7 +101,6 @@ router.post('/process', async (req, res) => {
         const result = await model.generateContent(fullPrompt);
         const responseText = await result.response.text();
         
-        // Find the JSON part of the response (sometimes the model adds ```json)
         const jsonMatch = responseText.match(/\{.*\}/s);
         if (!jsonMatch) {
             throw new Error('AI did not return valid JSON.');

@@ -10,25 +10,18 @@ const searchVehicle = require('../automation/searchVehicle');
 const { registerVehicle } = require('../automation/registerVehicle');
 const { transferOwnership } = require('../automation/transferOwnership');
 const { updateContacts } = require('../automation/updateContacts');
+// --- NEW SCRIPT IMPORTED ---
+const { freshPassport } = require('../automation/freshPassport');
 
-// --- THIS FUNCTION IS NOW FIXED ---
 // Helper function to handle captcha image conversion
 const handleCaptchaResponse = (res, result) => {
     try {
-        // 1. Store the path in a variable
         const imagePath = result.captchaImage; 
-
-        // 2. Read the file using the variable
         const imageBuffer = fs.readFileSync(imagePath);
         const base64Image = imageBuffer.toString('base64');
         result.captchaImageBase64 = `data:image/png;base64,${base64Image}`;
-        
-        // 3. Delete the property from the object we're sending to the user
         delete result.captchaImage; 
-        
-        // 4. Delete the actual file from the server using the variable
         fs.unlinkSync(imagePath);
-        
         res.status(200).json(result);
     } catch (imgError) {
         console.error('❌ Error reading/deleting captcha image:', imgError.message);
@@ -38,7 +31,6 @@ const handleCaptchaResponse = (res, result) => {
         });
     }
 };
-// --- END OF FIX ---
 
 // @route   POST /api/automation/execute
 // @desc    Execute automation task based on task type
@@ -83,6 +75,16 @@ router.post('/execute', async (req, res) => {
                 }
                 break;
 
+            // --- NEW CASE FOR PASSPORT ---
+            case 'passport_fresh':
+                console.log('🛂 Executing fresh passport automation...');
+                result = await freshPassport(taskData);
+                if (result.success && result.step === 'captcha_sent') {
+                    return handleCaptchaResponse(res, result);
+                }
+                break;
+            // --- END OF NEW CASE ---
+
             default:
                 return res.status(400).json({
                     success: false,
@@ -115,7 +117,7 @@ router.get('/status', (req, res) => {
     res.json({
         success: true,
         message: 'Automation service is running',
-        availableTasks: ['search', 'register', 'transfer', 'update'],
+        availableTasks: ['search', 'register', 'transfer', 'update', 'passport_fresh'], // Added new task
         note: 'All tasks are now implemented'
     });
 });

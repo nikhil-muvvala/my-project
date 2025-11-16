@@ -3,7 +3,7 @@
 // --- CHATBOT STATE ---
 let currentTaskState = 'idle'; 
 let sessionData = {}; 
-// Get the Portal User (who is logged in) - This is just the basic info
+// Get the Portal User (who is logged in)
 let currentUser = JSON.parse(localStorage.getItem('portalUser')) || {};
 
 // --- HTML ELEMENTS ---
@@ -50,6 +50,7 @@ const stateNameMap = indianStates.reduce((acc, state) => {
 
 // --- EVENT LISTENER ---
 chatForm.addEventListener('submit', handleUserInput);
+// NEW: Listen for clicks on the new buttons
 editProfileBtn.addEventListener('click', () => {
     if (currentTaskState !== 'idle' && currentTaskState !== 'form_pending') {
         addMessageToLog('Please wait for the current task to finish before editing your profile.', 'error');
@@ -61,10 +62,10 @@ editProfileBtn.addEventListener('click', () => {
 });
 logoutBtn.addEventListener('click', handleLogout);
 
-// --- NEW: Fetch full user profile on load ---
+
 window.onload = async () => {
-    addMessageToLog(`Hello, <b>${currentUser.name || 'user'}</b>! How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to transfer ownership</b>`, 'bot');
-    // Go get the user's full details (like address/phone) to pre-fill forms
+    // MODIFIED: Added 'book a passport' to the examples
+    addMessageToLog(`Hello, <b>${currentUser.name || 'user'}</b>! How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to book a passport</b>`, 'bot');
     await fetchCurrentUserProfile();
 }
 
@@ -76,13 +77,12 @@ async function fetchCurrentUserProfile() {
         });
         const data = await res.json();
         if (data.success) {
-            // Update the global currentUser object with full details
             currentUser = data.user; 
             localStorage.setItem('portalUser', JSON.stringify({
                 id: data.user._id,
                 name: data.user.username,
                 email: data.user.email
-            })); // Keep the simple one in storage
+            })); 
             console.log('Full user profile loaded:', currentUser);
         } else {
             throw new Error(data.message);
@@ -92,7 +92,6 @@ async function fetchCurrentUserProfile() {
         addMessageToLog('Could not fetch your profile details, forms may not pre-fill.', 'error');
     }
 }
-// --- END NEW FUNCTION ---
 
 
 // --- 1. THE BRAIN: Handles all user input ---
@@ -142,22 +141,26 @@ async function handleNewRequest(aiResponse) {
             break;
 
         case 'register':
-            // --- MODIFIED: Ask for email confirmation ---
             currentTaskState = 'awaiting_register_email_confirm';
             addMessageToLog(`OK, starting new vehicle registration.<br><br>Should I use your login email (<b>${currentUser.email}</b>) for the automation? <br>Type <b>yes</b> or enter a <b>different email</b>.`, 'bot');
             break;
 
         case 'transfer':
-            // --- MODIFIED: Ask for email confirmation ---
             currentTaskState = 'awaiting_transfer_email_confirm';
             addMessageToLog(`OK, starting ownership transfer.<br><br>Should I use your login email (<b>${currentUser.email}</b>) as the current owner? <br>Type <b>yes</b> or enter the <b>owner's email</b>.`, 'bot');
             break;
 
         case 'update':
-            // --- MODIFIED: Ask for email confirmation ---
             currentTaskState = 'awaiting_update_email_confirm';
             addMessageToLog(`OK, starting contact update.<br><br>Should I use your login email (<b>${currentUser.email}</b>) for the automation? <br>Type <b>yes</b> or enter a <b>different email</b>.`, 'bot');
             break;
+
+        // --- NEW: PASSPORT CASE ---
+        case 'passport_fresh':
+            currentTaskState = 'awaiting_passport_password';
+            addMessageToLog(`OK, starting a <b>Fresh Passport</b> application.<br>I'll use your profile details (<b>${currentUser.username}</b>, <b>${currentUser.email}</b>) to log in to the passport portal.<br><br>Please enter a <b>dummy password</b> for the automation to use (it can be anything, like "123").`, 'bot');
+            break;
+        // --- END NEW CASE ---
 
         case 'unknown':
         default:
@@ -171,7 +174,7 @@ async function handleMidTaskInput(userInput) {
     
     switch (currentTaskState) {
         
-        // --- SEARCH FLOW ---
+        // --- SEARCH FLOW (Unchanged) ---
         case 'awaiting_search_captcha':
             sessionData.captcha = userInput.toUpperCase();
             addMessageToLog('OK, checking captcha and fetching details...', 'bot');
@@ -180,8 +183,8 @@ async function handleMidTaskInput(userInput) {
             resetChat();
             break;
         
-        // --- REGISTRATION FLOW ---
-        case 'awaiting_register_email_confirm': // NEW STEP
+        // --- REGISTRATION FLOW (Unchanged) ---
+        case 'awaiting_register_email_confirm': 
             if (userInput.toLowerCase() === 'yes') {
                 sessionData = { email: currentUser.email };
                 addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
@@ -207,8 +210,8 @@ async function handleMidTaskInput(userInput) {
             currentTaskState = 'form_pending';
             break;
             
-        // --- TRANSFER FLOW ---
-        case 'awaiting_transfer_email_confirm': // NEW STEP
+        // --- TRANSFER FLOW (Unchanged) ---
+        case 'awaiting_transfer_email_confirm':
             if (userInput.toLowerCase() === 'yes') {
                 sessionData = { email: currentUser.email };
                 addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
@@ -257,8 +260,8 @@ async function handleMidTaskInput(userInput) {
             currentTaskState = 'form_pending';
             break;
 
-        // --- UPDATE FLOW ---
-        case 'awaiting_update_email_confirm': // NEW STEP
+        // --- UPDATE FLOW (Unchanged) ---
+        case 'awaiting_update_email_confirm':
              if (userInput.toLowerCase() === 'yes') {
                 sessionData = { email: currentUser.email };
                 addMessageToLog('Got it. Sending OTP to ' + currentUser.email + '...', 'bot');
@@ -306,6 +309,39 @@ async function handleMidTaskInput(userInput) {
             showUpdateForm();
             currentTaskState = 'form_pending';
             break;
+        
+        // --- NEW: PASSPORT FLOW ---
+        case 'awaiting_passport_password':
+            sessionData = {
+                loginName: currentUser.username, // Use portal user's name
+                loginEmail: currentUser.email, // Use portal user's email
+                loginPassword: userInput // The dummy password
+            };
+            addMessageToLog('Got it. Logging into the passport portal automation...', 'bot');
+            const passResult1 = await callAutomation('passport_fresh', sessionData);
+            
+            sessionData.sessionId = passResult1.sessionId;
+            currentTaskState = 'form_pending';
+            addMessageToLog('Login successful! Please fill out the passport application form below.', 'bot');
+            showFreshPassportForm(); // Show the new form
+            break;
+
+        case 'awaiting_passport_captcha':
+            sessionData.captcha = userInput.toUpperCase();
+            addMessageToLog('OK, verifying captcha and submitting application...', 'bot');
+            
+            const passResult3 = await callAutomation('passport_fresh', {
+                sessionId: sessionData.sessionId,
+                step: 'submit_captcha',
+                captcha: sessionData.captcha,
+                // We must re-send the form data so the script can scrape the name
+                givenName: sessionData.givenName 
+            });
+
+            showResult(passResult3.data, 'passport_fresh');
+            resetChat();
+            break;
+        // --- END NEW FLOW ---
 
         case 'form_pending':
             addMessageToLog('Please fill out the form above to continue. Your text here is ignored until the form is submitted.', 'bot');
@@ -320,7 +356,7 @@ async function handleMidTaskInput(userInput) {
 // --- 4. FORM DISPLAY & SUBMIT FUNCTIONS ---
 
 function showRegisterForm() {
-    // --- MODIFIED: Pre-fills with full currentUser profile data ---
+    // This form now correctly uses the logged-in user's info for pre-filling
     const formHtml = `
         <div class="chat-form-container">
             <h4>📋 New Vehicle Registration</h4>
@@ -357,12 +393,10 @@ function showRegisterForm() {
 
 async function handleRegisterSubmit() {
     setThinking(true);
-    // --- BUG FIX: Added email and otp to the payload ---
     const vehicleData = {
         sessionId: sessionData.sessionId,
         email: sessionData.email,
         otp: sessionData.otp,
-        // --- End of Bug Fix ---
         ownerName: document.getElementById('reg_ownerName').value,
         fatherName: document.getElementById('reg_fatherName').value,
         mobile: document.getElementById('reg_mobile').value,
@@ -418,15 +452,13 @@ function showTransferForm() {
 
 async function handleTransferSubmit() {
     setThinking(true);
-    // --- BUG FIX: Added email, otp, regNo, state, and searchCaptcha to the payload ---
     const transferData = {
-        sessionId: sessionData.sessionId,
-        email: sessionData.email,
-        otp: sessionData.otp,
-        regNo: sessionData.regNo,
-        state: sessionData.state,
-        searchCaptcha: sessionData.searchCaptcha,
-        // --- End of Bug Fix ---
+        sessionId: sessionData.sessionId, 
+        email: sessionData.email, // Added
+        otp: sessionData.otp, // Added
+        regNo: sessionData.regNo, // Added
+        state: sessionData.state, // Added
+        searchCaptcha: sessionData.searchCaptcha, // Added
         newOwnerName: document.getElementById('trans_newOwnerName').value,
         newOwnerFather: document.getElementById('trans_newOwnerFather').value,
         newOwnerMobile: document.getElementById('trans_newOwnerMobile').value,
@@ -478,15 +510,13 @@ function showUpdateForm() {
 
 async function handleUpdateSubmit() {
     setThinking(true);
-    // --- BUG FIX: Added email, otp, regNo, state, and searchCaptcha to the payload ---
     const updateData = {
-        sessionId: sessionData.sessionId,
-        email: sessionData.email,
-        otp: sessionData.otp,
-        regNo: sessionData.regNo,
-        state: sessionData.state,
-        searchCaptcha: sessionData.searchCaptcha,
-        // --- End of Bug Fix ---
+        sessionId: sessionData.sessionId, 
+        email: sessionData.email, // Added
+        otp: sessionData.otp, // Added
+        regNo: sessionData.regNo, // Added
+        state: sessionData.state, // Added
+        searchCaptcha: sessionData.searchCaptcha, // Added
         newAddress: document.getElementById('update_newAddress').value,
         newMobile: document.getElementById('update_newMobile').value,
     };
@@ -510,7 +540,144 @@ async function handleUpdateSubmit() {
     }
 }
 
-// --- NEW: PROFILE EDITING FUNCTIONS ---
+// --- NEW: PASSPORT FORM FUNCTIONS ---
+function showFreshPassportForm() {
+    const formHtml = `
+        <div class="chat-form-container">
+            <h4>🛂 Fresh Passport - Step 2: Application Details</h4>
+            <p>Using <b>${currentUser.username}</b> & <b>${currentUser.email}</b>. Details from your profile are pre-filled.</p>
+            
+            <h4>Passport Type</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Service Type *</label>
+                    <select id="pass_serviceType">
+                        <option value="normal">Normal</option>
+                        <option value="tatkaal">Tatkaal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Booklet *</label>
+                    <select id="pass_bookletType">
+                        <option value="36">36 Pages</option>
+                        <option value="60">60 Pages</option>
+                    </select>
+                </div>
+            </div>
+
+            <h4>Applicant Details</h4>
+            <div class="form-row">
+                <div class="form-group"><label>Given Name *</label><input type="text" id="pass_givenName" value="${currentUser.username || ''}"></div>
+                <div class="form-group"><label>Surname</label><input type="text" id="pass_surname"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Gender *</label><select id="pass_gender"><option value="Male">Male</option><option value="Female">Female</option><option value="Transgender">Transgender</option></select></div>
+                <div class="form-group"><label>Date of Birth *</label><input type="date" id="pass_dob"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Place of Birth *</label><input type="text" id="pass_placeOfBirth" placeholder="e.g., Hyderabad"></div>
+                <div class="form-group"><label>Marital Status *</label><select id="pass_maritalStatus"><option value="Single">Single</option><option value="Married">Married</option></select></div>
+            </div>
+            <div class="form-group"><label>Employment *</label><select id="pass_employment"><option value="Private">Private</option><option value="Government">Government</option><option value="Student">Student</option></select></div>
+
+            <h4>Family Details</h4>
+            <div class="form-row">
+                <div class="form-group"><label>Father's Given Name *</label><input type="text" id="pass_fatherGivenName"></div>
+                <div class="form-group"><label>Mother's Given Name *</label><input type="text" id="pass_motherGivenName"></div>
+            </div>
+            
+            <h4>Address Details</h4>
+            <div class="form-group"><label>House No. & Street *</label><input type="text" id="pass_houseNo" value="${currentUser.address || ''}"></div>
+            <div class="form-row">
+                <div class="form-group"><label>City *</label><input type="text" id="pass_city" placeholder="e.g., Hyderabad"></div>
+                <div class="form-group"><label>PIN Code *</label><input type="text" id="pass_pincode" placeholder="e.g., 500001"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>State *</label><select id="pass_state"><option value="">-- Select --</option>${stateOptions}</select></div>
+                <div class="form-group"><label>Mobile *</label><input type="tel" id="pass_mobile" value="${currentUser.phoneno || ''}"></div>
+            </div>
+
+            <h4>Emergency Contact</h4>
+            <div class="form-row">
+                <div class="form-group"><label>EC Name *</label><input type="text" id="pass_emergencyName"></div>
+                <div class="form-group"><label>EC Mobile *</label><input type="tel" id="pass_emergencyMobile"></div>
+            </div>
+
+            <button class="btn" onclick="handleFreshPassportSubmit()">Submit & Get Captcha</button>
+            <div class="status-message" id="formStatusMsg"></div>
+        </div>
+    `;
+    addMessageToLog(formHtml, 'bot');
+}
+
+async function handleFreshPassportSubmit() {
+    setThinking(true);
+    // 1. Gather all data from the form
+    const formData = {
+        // This is the login data from the previous step
+        ...sessionData,
+        step: 'fill_form',
+        // These are the new form fields
+        serviceType: document.getElementById('pass_serviceType').value,
+        bookletType: document.getElementById('pass_bookletType').value,
+        givenName: document.getElementById('pass_givenName').value,
+        surname: document.getElementById('pass_surname').value,
+        gender: document.getElementById('pass_gender').value,
+        dob: document.getElementById('pass_dob').value,
+        placeOfBirth: document.getElementById('pass_placeOfBirth').value,
+        maritalStatus: document.getElementById('pass_maritalStatus').value,
+        employment: document.getElementById('pass_employment').value,
+        fatherGivenName: document.getElementById('pass_fatherGivenName').value,
+        motherGivenName: document.getElementById('pass_motherGivenName').value,
+        houseNo: document.getElementById('pass_houseNo').value,
+        city: document.getElementById('pass_city').value,
+        pincode: document.getElementById('pass_pincode').value,
+        state: document.getElementById('pass_state').value,
+        mobile: document.getElementById('pass_mobile').value,
+        emergencyName: document.getElementById('pass_emergencyName').value,
+        emergencyMobile: document.getElementById('pass_emergencyMobile').value,
+        // Hard-coded values for simplicity
+        nonECR: "yes", 
+    };
+
+    // Simple validation
+    const requiredFields = ['givenName', 'dob', 'placeOfBirth', 'fatherGivenName', 'motherGivenName', 'houseNo', 'city', 'pincode', 'state', 'mobile', 'emergencyName', 'emergencyMobile'];
+    for (let key of requiredFields) {
+        if (!formData[key]) {
+            document.getElementById('formStatusMsg').textContent = `Please fill in all required fields. "${key}" is missing.`;
+            document.getElementById('formStatusMsg').className = 'status-message show error';
+            setThinking(false);
+            return;
+        }
+    }
+
+    // 2. Store key data for the *final* step
+    sessionData.givenName = formData.givenName; 
+
+    addMessageToLog('Got it. Submitting form details and fetching captcha...', 'bot');
+    try {
+        // 3. Call automation to fill the form
+        const result = await callAutomation('passport_fresh', formData);
+        
+        // 4. Handle captcha response
+        if (result.success && result.step === 'captcha_sent') {
+            sessionData.sessionId = result.sessionId; // Re-set sessionId just in case
+            currentTaskState = 'awaiting_passport_captcha';
+            addMessageToLog(`Form submitted! Please type the final captcha code:<br><img src="${result.captchaImageBase64}" class="captcha-image" alt="captcha">`, 'bot');
+        } else {
+            throw new Error(result.message || 'Failed to fill form.');
+        }
+    } catch (error) {
+         addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
+         resetChat();
+    } finally {
+        setThinking(false);
+    }
+}
+// --- END NEW PASSPORT FUNCTIONS ---
+
+
+// --- PROFILE EDITING FUNCTIONS ---
 async function showProfileForm() {
     setThinking(true);
     try {
@@ -590,7 +757,7 @@ async function handleProfileSubmit() {
 }
 
 
-// --- NEW: LOGOUT FUNCTION ---
+// --- LOGOUT FUNCTION ---
 function handleLogout() {
     localStorage.removeItem('portalUserToken');
     localStorage.removeItem('portalUser');
@@ -703,6 +870,16 @@ function showResult(data, taskType) {
                 <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
                 <tr><td>Application ID</td><td><strong>${data.applicationId}</strong></td></tr>
                 <tr><td>New Address</td><td>${data.newAddress}</td></tr>
+            </table>
+        `;
+    } else if (taskType === 'passport_fresh') { // --- NEW RESULT CASE ---
+        title = '✅ Passport Application Submitted!';
+         content = `
+            <table class="result-table">
+                <tr><td>Status</td><td><strong>${data.status}</strong></td></tr>
+                <tr><td>Reference Number</td><td><strong>${data.applicationId}</strong></td></tr>
+                <tr><td>Applicant Name</td><td>${data.applicantName}</td></tr>
+                <tr><td>Processing Time</td><td>${data.processingTime}</td></tr>
             </table>
         `;
     }
