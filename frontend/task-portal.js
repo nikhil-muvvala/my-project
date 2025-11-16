@@ -64,7 +64,32 @@ logoutBtn.addEventListener('click', handleLogout);
 
 
 window.onload = async () => {
-    addMessageToLog(`Hello, <b>${currentUser.name || 'user'}</b>! How can I help you today?<br><br>You can say things like:<br>• <b>get details for DL01AB1234 from Delhi</b><br>• <b>register a new car</b><br>• <b>I want to book a passport</b>`, 'bot');
+    addMessageToLog(`
+        <div style="padding: 8px 0;">
+            <h3 style="margin-bottom: 12px; color: #1e293b; font-size: 18px;">👋 Welcome, <b>${currentUser.name || 'User'}</b>!</h3>
+            <p style="color: #64748b; margin-bottom: 16px; line-height: 1.6;">I'm your AI assistant for government services automation. I can help you with:</p>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border-left: 4px solid #6366f1;">
+                <p style="margin-bottom: 8px; font-weight: 600; color: #1e293b;">🚗 <b>Vehicle Services:</b></p>
+                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
+                    <li>Search vehicle details</li>
+                    <li>Register new vehicles</li>
+                    <li>Transfer ownership</li>
+                    <li>Update contact information</li>
+                </ul>
+                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: #1e293b;">🛂 <b>Passport Services:</b></p>
+                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
+                    <li>Apply for fresh passport</li>
+                </ul>
+                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: #1e293b;">🆔 <b>E-ID Services:</b></p>
+                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
+                    <li>Register for E-ID</li>
+                    <li>Search E-ID records</li>
+                    <li>Update E-ID information</li>
+                </ul>
+            </div>
+            <p style="margin-top: 16px; color: #64748b; font-size: 14px;">💡 <b>Tip:</b> Just type what you need in natural language!</p>
+        </div>
+    `, 'bot');
     await fetchCurrentUserProfile();
 }
 
