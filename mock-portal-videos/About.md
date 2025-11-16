@@ -1,0 +1,1 @@
+**In this folder, there are some demo videos of few of the mock websites we built. This is just to highlight that our playwright scripts are able to navigate through these pages easily as well. Please take a look at them!**
