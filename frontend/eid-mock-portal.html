@@ -648,11 +648,20 @@
                 const name = document.getElementById('reg-name').value;
                 const dob = document.getElementById('reg-dob').value;
                 const gender = document.getElementById('reg-gender').value;
-                const phone = document.getElementById('reg-phone').value;
+                let phone = document.getElementById('reg-phone').value;
                 const address = document.getElementById('reg-address').value;
 
                 if (!name || !dob || !gender || !phone || !address) {
                     if (registerErrorMessage) registerErrorMessage.textContent = "All fields are required.";
+                    if (registerErrorBox) registerErrorBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Normalize phone number: remove all non-digit characters
+                phone = phone.replace(/\D/g, '');
+                
+                if (phone.length < 10) {
+                    if (registerErrorMessage) registerErrorMessage.textContent = "Please enter a valid phone number (at least 10 digits).";
                     if (registerErrorBox) registerErrorBox.classList.remove('hidden');
                     return;
                 }
