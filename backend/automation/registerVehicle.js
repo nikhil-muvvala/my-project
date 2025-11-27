@@ -92,15 +92,36 @@ async function registerVehicle(data) {
             if (!session) throw new Error('Session expired.');
             const { browser, page } = session;
             
-            await page.click('a[onclick*="services"]');
-            await page.waitForTimeout(500);
+            // Navigate to services section
+            try {
+                const servicesLink = await page.$('a[onclick*="services"]');
+                if (servicesLink) {
+                    await servicesLink.click();
+                    await page.waitForTimeout(500);
+                }
+            } catch (e) {
+                console.log('⚠️ Services link not found or already on services page');
+            }
 
-            await page.click('.service-card:has-text("New Vehicle Registration")');
-            await page.waitForSelector('#newRegModal.show', { timeout: 5000 });
-            console.log('✅ Opened new registration modal');
+            // Click on New Vehicle Registration
+            try {
+                await page.click('.service-card:has-text("New Vehicle Registration")');
+                await page.waitForSelector('#newRegModal.show', { timeout: 8000 });
+                console.log('✅ Opened new registration modal');
+            } catch (e) {
+                // Try alternative selector
+                const regButton = await page.$('button:has-text("New Vehicle Registration"), .service-card');
+                if (regButton) {
+                    await regButton.click();
+                    await page.waitForSelector('#newRegModal.show', { timeout: 8000 });
+                    console.log('✅ Opened new registration modal (alternative method)');
+                } else {
+                    throw new Error('Could not find New Vehicle Registration button');
+                }
+            }
 
-            await page.waitForSelector('#newReg_ownerName', { state: 'visible', timeout: 5000 });
-            await page.waitForTimeout(200); 
+            await page.waitForSelector('#newReg_ownerName', { state: 'visible', timeout: 8000 });
+            await page.waitForTimeout(300); 
             console.log('✅ Form is visible and ready.');
 
             await page.fill('#newReg_ownerName', vehicleDetails.ownerName);
@@ -129,31 +150,51 @@ async function registerVehicle(data) {
             console.log('✅ Checked all document checkboxes');
 
             await page.click('#newRegForm button[type="submit"]');
-            await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
-            console.log('✅ Receipt modal opened');
+            console.log('✅ Submit button clicked, waiting for receipt...');
             
-            const receiptText = await page.textContent('#receiptContentOutput');
-            const regNoMatch = receiptText.match(/Vehicle Reg\. No: ([A-Z0-9]+)/);
-            const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
-            
-            const result = {
-                applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
-                registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
-                ownerName: vehicleDetails.ownerName,
-                model: vehicleDetails.model,
-                status: 'COMPLETED'
-            };
-            
-            console.log('✅ Registration completed:', result.registrationNumber);
-            
-            removeActiveSession(sessionId);
-            
-            return {
-                success: true,
-                step: 'completed',
-                message: 'Vehicle registered successfully',
-                data: result
-            };
+            // Wait for receipt modal with better error handling
+            try {
+                await page.waitForSelector('#receiptModal.show', { timeout: 25000 });
+                console.log('✅ Receipt modal opened');
+                
+                // Wait a bit for content to load
+                await page.waitForTimeout(1000);
+                
+                const receiptText = await page.textContent('#receiptContentOutput');
+                if (!receiptText) {
+                    throw new Error('Receipt content not found');
+                }
+                
+                const regNoMatch = receiptText.match(/Vehicle Reg\. No: ([A-Z0-9]+)/);
+                const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
+                
+                const result = {
+                    applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
+                    registrationNumber: regNoMatch ? regNoMatch[1] : 'N/A',
+                    ownerName: vehicleDetails.ownerName,
+                    model: vehicleDetails.model,
+                    status: 'COMPLETED'
+                };
+                
+                console.log('✅ Registration completed:', result.registrationNumber);
+                
+                removeActiveSession(sessionId);
+                
+                return {
+                    success: true,
+                    step: 'completed',
+                    message: 'Vehicle registered successfully',
+                    data: result
+                };
+            } catch (waitError) {
+                // Check if there's an error message on the page
+                const errorElement = await page.$('.alert-danger, .error-message, #newRegModal .alert');
+                if (errorElement) {
+                    const errorText = await errorElement.textContent();
+                    throw new Error(`Registration failed: ${errorText.trim() || 'Unknown error'}`);
+                }
+                throw new Error(`Failed to get receipt: ${waitError.message}`);
+            }
         }
 
         throw new Error('Invalid request state.');
