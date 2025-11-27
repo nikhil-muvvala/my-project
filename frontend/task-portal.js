@@ -3,6 +3,11 @@
 // --- CHATBOT STATE ---
 let currentTaskState = 'idle'; 
 let sessionData = {}; 
+let chatSessions = [];
+let activeSessionId = null;
+let chatHistoryStorageKey = null;
+let activeChatStorageKey = null;
+let chatHistoryReady = false;
 // Get the Portal User (who is logged in)
 let currentUser = JSON.parse(localStorage.getItem('portalUser')) || {};
 
@@ -11,6 +16,11 @@ const chatLog = document.getElementById('chat-log');
 const chatForm = document.getElementById('chat-form');
 const inputEl = document.getElementById('user-input');
 const statusBar = document.getElementById('status-bar');
+const appShell = document.getElementById('appShell');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const chatHistoryList = document.getElementById('chatHistoryList');
+const newChatBtn = document.getElementById('newChatBtn');
+const sidebarUserEmail = document.getElementById('sidebarUserEmail');
 
 // --- NEW: Add listeners for new buttons ---
 const editProfileBtn = document.getElementById('editProfileBtn');
@@ -18,6 +28,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const themeIcon = themeToggleBtn?.querySelector('.theme-icon');
 const themeLabel = themeToggleBtn?.querySelector('.theme-label');
+const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 
 // --- REGEX HELPERS ---
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,36 +100,18 @@ editProfileBtn.addEventListener('click', () => {
 });
 logoutBtn.addEventListener('click', handleLogout);
 
+sidebarToggleBtn?.addEventListener('click', () => toggleSidebar());
+sidebarOverlay?.addEventListener('click', () => toggleSidebar(false));
+newChatBtn?.addEventListener('click', () => {
+    if (!chatHistoryReady) return;
+    createNewChatSession();
+    toggleSidebar(false);
+});
 
-window.onload = async () => {
-    addMessageToLog(`
-        <div style="padding: 8px 0;">
-            <h3 style="margin-bottom: 12px; color: #1e293b; font-size: 18px;">👋 Welcome, <b>${currentUser.name || 'User'}</b>!</h3>
-            <p style="color: #64748b; margin-bottom: 16px; line-height: 1.6;">I'm your AI assistant for government services automation. I can help you with:</p>
-            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border-left: 4px solid #6366f1;">
-                <p style="margin-bottom: 8px; font-weight: 600; color: #1e293b;">🚗 <b>Vehicle Services:</b></p>
-                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
-                    <li>Search vehicle details</li>
-                    <li>Register new vehicles</li>
-                    <li>Transfer ownership</li>
-                    <li>Update contact information</li>
-                </ul>
-                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: #1e293b;">🛂 <b>Passport Services:</b></p>
-                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
-                    <li>Apply for fresh passport</li>
-                </ul>
-                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: #1e293b;">🆔 <b>E-ID Services:</b></p>
-                <ul style="margin-left: 20px; color: #64748b; line-height: 1.8;">
-                    <li>Register for E-ID</li>
-                    <li>Search E-ID records</li>
-                    <li>Update E-ID information</li>
-                </ul>
-            </div>
-            <p style="margin-top: 16px; color: #64748b; font-size: 14px;">💡 <b>Tip:</b> Just type what you need in natural language!</p>
-        </div>
-    `, 'bot');
+window.addEventListener('load', async () => {
     await fetchCurrentUserProfile();
-}
+    initializeChatHistory();
+});
 
 async function fetchCurrentUserProfile() {
     try {
@@ -135,13 +128,215 @@ async function fetchCurrentUserProfile() {
                 email: data.user.email
             })); 
             console.log('Full user profile loaded:', currentUser);
+            if (sidebarUserEmail) {
+                sidebarUserEmail.textContent = data.user.email || 'guest';
+            }
         } else {
             throw new Error(data.message);
         }
     } catch (error) {
         console.error('Error fetching full profile:', error);
         addMessageToLog('Could not fetch your profile details, forms may not pre-fill.', 'error');
+        if (sidebarUserEmail) {
+            sidebarUserEmail.textContent = currentUser?.email || 'guest';
+        }
     }
+}
+
+// --- CHAT HISTORY MANAGEMENT ---
+function initializeChatHistory() {
+    const emailKey = currentUser?.email || currentUser?.username || 'guest';
+    chatHistoryStorageKey = `portalChatHistory_${emailKey}`;
+    activeChatStorageKey = `portalActiveChat_${emailKey}`;
+
+    const storedSessions = localStorage.getItem(chatHistoryStorageKey);
+    chatSessions = storedSessions ? JSON.parse(storedSessions) : [];
+
+    const storedActiveId = localStorage.getItem(activeChatStorageKey);
+    if (storedActiveId && chatSessions.some(session => session.id === storedActiveId)) {
+        activeSessionId = storedActiveId;
+    } else {
+        activeSessionId = chatSessions[0]?.id || null;
+    }
+
+    renderHistorySidebar();
+
+    if (!activeSessionId) {
+        createNewChatSession({ showWelcome: true });
+        return;
+    }
+
+    loadSession(activeSessionId, { fromInit: true });
+
+    const activeSession = getActiveSession();
+    if (activeSession && activeSession.messages.length === 0) {
+        addWelcomeMessage();
+    }
+
+    chatHistoryReady = true;
+}
+
+function getActiveSession() {
+    return chatSessions.find(session => session.id === activeSessionId);
+}
+
+function saveChatState() {
+    if (!chatHistoryStorageKey || !activeChatStorageKey) return;
+    localStorage.setItem(chatHistoryStorageKey, JSON.stringify(chatSessions));
+    localStorage.setItem(activeChatStorageKey, activeSessionId || '');
+}
+
+function createNewChatSession({ showWelcome = true } = {}) {
+    const newSession = {
+        id: `chat_${Date.now()}`,
+        title: 'New Chat',
+        createdAt: Date.now(),
+        messages: []
+    };
+
+    chatSessions.unshift(newSession);
+    // Keep the most recent 25 chats
+    if (chatSessions.length > 25) {
+        chatSessions = chatSessions.slice(0, 25);
+    }
+
+    activeSessionId = newSession.id;
+    saveChatState();
+    renderHistorySidebar();
+    resetChat();
+    clearChatLog();
+
+    if (showWelcome) {
+        addWelcomeMessage();
+    }
+}
+
+function loadSession(sessionId, { fromInit = false } = {}) {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    activeSessionId = sessionId;
+    saveChatState();
+    resetChat();
+    clearChatLog();
+
+    session.messages.forEach(message => {
+        addMessageToLog(message.content, message.sender, { persist: false });
+    });
+
+    renderHistorySidebar();
+
+    if (!fromInit) {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+}
+
+function renderHistorySidebar() {
+    if (!chatHistoryList) return;
+    chatHistoryList.innerHTML = '';
+
+    if (!chatSessions.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'history-empty';
+        emptyState.textContent = 'No chats yet. Start a new conversation!';
+        chatHistoryList.appendChild(emptyState);
+        return;
+    }
+
+    chatSessions.forEach(session => {
+        const item = document.createElement('button');
+        item.className = `history-item ${session.id === activeSessionId ? 'active' : ''}`;
+        item.innerHTML = `
+            <span class="title">${session.title || 'New Chat'}</span>
+            <span class="meta">${formatHistoryTimestamp(session.createdAt)}</span>
+        `;
+        item.addEventListener('click', () => {
+            if (session.id !== activeSessionId) {
+                loadSession(session.id);
+                toggleSidebar(false);
+            }
+        });
+        chatHistoryList.appendChild(item);
+    });
+}
+
+function formatHistoryTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function saveMessageToActiveSession(sender, content, timestamp = Date.now()) {
+    if (!chatHistoryStorageKey) return;
+    const session = getActiveSession();
+    if (!session) return;
+
+    session.messages.push({ sender, content, timestamp });
+
+    if (sender === 'user' && session.title === 'New Chat') {
+        session.title = deriveTitleFromMessage(content);
+        renderHistorySidebar();
+    }
+
+    saveChatState();
+}
+
+function deriveTitleFromMessage(content) {
+    const stripped = content
+        .replace(/<[^>]+>/g, ' ') // remove HTML tags
+        .replace(/\s+/g, ' ')
+        .trim();
+    const fallback = 'New Chat';
+    if (!stripped) return fallback;
+    return stripped.length > 40 ? `${stripped.slice(0, 37)}...` : stripped;
+}
+
+function clearChatLog() {
+    if (chatLog) {
+        chatLog.innerHTML = '';
+    }
+}
+
+function toggleSidebar(force) {
+    if (!appShell) return;
+    const shouldOpen = typeof force === 'boolean' ? force : !appShell.classList.contains('sidebar-open');
+    appShell.classList.toggle('sidebar-open', shouldOpen);
+}
+
+function addWelcomeMessage() {
+    addMessageToLog(getWelcomeMessageHtml(), 'bot');
+}
+
+function getWelcomeMessageHtml() {
+    const displayName = currentUser?.name || currentUser?.username || 'User';
+    return `
+        <div style="padding: 8px 0;">
+            <h3 style="margin-bottom: 12px; color: var(--text-primary); font-size: 18px;">👋 Welcome, <b>${displayName}</b>!</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">I'm your AI assistant for government services automation. I can help you with:</p>
+            <div style="background: var(--bg-light); padding: 16px; border-radius: 12px; border-left: 4px solid var(--primary);">
+                <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">🚗 <b>Vehicle Services:</b></p>
+                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li>Search vehicle details</li>
+                    <li>Register new vehicles</li>
+                    <li>Transfer ownership</li>
+                    <li>Update contact information</li>
+                </ul>
+                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">🛂 <b>Passport Services:</b></p>
+                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li>Apply for fresh passport</li>
+                </ul>
+                <p style="margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">🆔 <b>E-ID Services:</b></p>
+                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li>Register for E-ID</li>
+                    <li>Search E-ID records</li>
+                    
+                </ul>
+            </div>
+            <p style="margin-top: 16px; color: var(--text-secondary); font-size: 14px;">💡 <b>Tip:</b> Just type what you need in natural language!</p>
+        </div>
+    `;
 }
 
 
@@ -183,8 +378,9 @@ async function handleNewRequest(aiResponse) {
             }
             sessionData = { regNo, state };
             addMessageToLog(`OK, I will search for <b>${regNo}</b> in state <b>${state}</b>. Fetching captcha...`, 'bot');
-            
+            setThinking(true, '🔍 Loading search page and fetching captcha...');
             const result = await callAutomation('search', { regNo, state });
+            setThinking(false);
             
             sessionData.sessionId = result.sessionId;
             currentTaskState = 'awaiting_search_captcha';
@@ -267,7 +463,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_search_captcha':
             sessionData.captcha = userInput.toUpperCase();
             addMessageToLog('OK, checking captcha and fetching details...', 'bot');
+            setThinking(true, '🔍 Verifying captcha and retrieving vehicle details...');
             const result = await callAutomation('search', sessionData);
+            setThinking(false);
             showResult(result.data, 'search');
             resetChat();
             break;
@@ -284,7 +482,9 @@ async function handleMidTaskInput(userInput) {
                 addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return; 
             }
+            setThinking(true, '📧 Sending OTP email...');
             const regResult1 = await callAutomation('register', sessionData); 
+            setThinking(false);
             sessionData.sessionId = regResult1.sessionId;
             currentTaskState = 'awaiting_register_otp';
             addMessageToLog('OTP Sent. Please enter the 6-digit code.', 'bot');
@@ -293,7 +493,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_register_otp':
             sessionData.otp = userInput;
             addMessageToLog('Verifying OTP...', 'bot');
+            setThinking(true, '🔐 Verifying OTP code...');
             const regResult2 = await callAutomation('register', sessionData);
+            setThinking(false);
             addMessageToLog('Login successful! Please fill out the form below to register your vehicle.', 'bot');
             showRegisterForm(); 
             currentTaskState = 'form_pending';
@@ -311,7 +513,9 @@ async function handleMidTaskInput(userInput) {
                 addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return;
             }
+            setThinking(true, '📧 Sending OTP email...');
             const transResult1 = await callAutomation('transfer', sessionData);
+            setThinking(false);
             sessionData.sessionId = transResult1.sessionId;
             currentTaskState = 'awaiting_transfer_otp';
             addMessageToLog('OTP Sent. Please enter the 6-digit code.', 'bot');
@@ -320,7 +524,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_transfer_otp':
             sessionData.otp = userInput;
             addMessageToLog('Verifying OTP...', 'bot');
+            setThinking(true, '🔐 Verifying OTP code...');
             const transResult2 = await callAutomation('transfer', sessionData);
+            setThinking(false);
             currentTaskState = 'awaiting_transfer_vehicle';
             addMessageToLog('Login successful! Please provide the vehicle you want to transfer in this format:<br><br><code>[Reg No], [State Code]</code> (e.g., <code>MH01XY5678, MH</code>)', 'bot');
             break;
@@ -334,8 +540,9 @@ async function handleMidTaskInput(userInput) {
             sessionData.regNo = vehicleInfo[0].toUpperCase();
             sessionData.state = stateNameMap[vehicleInfo[1].toLowerCase()] || vehicleInfo[1].toUpperCase();
             addMessageToLog(`OK, finding <b>${sessionData.regNo}</b>... fetching search captcha.`, 'bot');
-            
+            setThinking(true, '🔍 Searching for vehicle...');
             const transResult3 = await callAutomation('transfer', sessionData);
+            setThinking(false);
             currentTaskState = 'awaiting_transfer_search_captcha';
             addMessageToLog(`Please type the search captcha code:<br><img src="${transResult3.captchaImageBase64}" class="captcha-image" alt="captcha">`, 'bot');
             break;
@@ -343,7 +550,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_transfer_search_captcha':
             sessionData.searchCaptcha = userInput.toUpperCase();
             addMessageToLog('OK, checking captcha and opening transfer form...', 'bot');
+            setThinking(true, '🔍 Verifying captcha and finding vehicle...');
             const transResult4 = await callAutomation('transfer', sessionData);
+            setThinking(false);
             addMessageToLog('Vehicle found! Please fill out the new owner\'s details in the form below.', 'bot');
             showTransferForm();
             currentTaskState = 'form_pending';
@@ -361,7 +570,9 @@ async function handleMidTaskInput(userInput) {
                 addMessageToLog("That's not a valid email. Please type <b>yes</b> or a <b>different email</b>.", 'bot');
                 return;
             }
+            setThinking(true, '📧 Sending OTP email...');
             const updateResult1 = await callAutomation('update', sessionData);
+            setThinking(false);
             sessionData.sessionId = updateResult1.sessionId;
             currentTaskState = 'awaiting_update_otp';
             addMessageToLog('OTP Sent. Please enter the 6-digit code.', 'bot');
@@ -370,7 +581,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_update_otp':
             sessionData.otp = userInput;
             addMessageToLog('Verifying OTP...', 'bot');
+            setThinking(true, '🔐 Verifying OTP code...');
             const updateResult2 = await callAutomation('update', sessionData);
+            setThinking(false);
             currentTaskState = 'awaiting_update_vehicle';
             addMessageToLog('Login successful! Please provide the vehicle you want to update in this format:<br><br><code>[Reg No], [State Code]</code> (e.g., <code>MH01XY5678, MH</code>)', 'bot');
             break;
@@ -384,8 +597,9 @@ async function handleMidTaskInput(userInput) {
             sessionData.regNo = updateVehicleInfo[0].toUpperCase();
             sessionData.state = stateNameMap[updateVehicleInfo[1].toLowerCase()] || updateVehicleInfo[1].toUpperCase();
             addMessageToLog(`OK, finding <b>${sessionData.regNo}</b>... fetching search captcha.`, 'bot');
-            
+            setThinking(true, '🔍 Searching for vehicle...');
             const updateResult3 = await callAutomation('update', sessionData);
+            setThinking(false);
             currentTaskState = 'awaiting_update_search_captcha';
             addMessageToLog(`Please type the search captcha code:<br><img src="${updateResult3.captchaImageBase64}" class="captcha-image" alt="captcha">`, 'bot');
             break;
@@ -393,7 +607,9 @@ async function handleMidTaskInput(userInput) {
         case 'awaiting_update_search_captcha':
             sessionData.searchCaptcha = userInput.toUpperCase();
             addMessageToLog('OK, checking captcha and opening update form...', 'bot');
+            setThinking(true, '🔍 Verifying captcha and finding vehicle...');
             const updateResult4 = await callAutomation('update', sessionData);
+            setThinking(false);
             addMessageToLog('Vehicle found! Please fill in the new details in the form below.', 'bot');
             showUpdateForm();
             currentTaskState = 'form_pending';
@@ -547,7 +763,7 @@ function showRegisterForm() {
 }
 
 async function handleRegisterSubmit() {
-    setThinking(true);
+    setThinking(true, '📋 Preparing registration form...');
     const vehicleData = {
         sessionId: sessionData.sessionId,
         email: sessionData.email,
@@ -573,13 +789,17 @@ async function handleRegisterSubmit() {
     }
     addMessageToLog('Got it. Submitting registration...', 'bot');
     try {
+        setThinking(true, '📝 Filling registration form...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setThinking(true, '💾 Submitting vehicle registration...');
         const result = await callAutomation('register', vehicleData);
+        setThinking(false);
         showResult(result.data, 'register');
     } catch (error) {
+         setThinking(false);
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
     } finally {
         resetChat();
-        setThinking(false);
     }
 }
 
@@ -606,7 +826,7 @@ function showTransferForm() {
 }
 
 async function handleTransferSubmit() {
-    setThinking(true);
+    setThinking(true, '📋 Preparing transfer form...');
     const transferData = {
         sessionId: sessionData.sessionId, 
         email: sessionData.email, // Added
@@ -631,13 +851,17 @@ async function handleTransferSubmit() {
     }
     addMessageToLog('Got it. Submitting final application...', 'bot');
     try {
+        setThinking(true, '📝 Filling transfer form...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setThinking(true, '💾 Submitting ownership transfer...');
         const result = await callAutomation('transfer', transferData);
+        setThinking(false);
         showResult(result.data, 'transfer');
     } catch (error) {
+         setThinking(false);
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
     } finally {
         resetChat();
-        setThinking(false);
     }
 }
         
@@ -664,7 +888,7 @@ function showUpdateForm() {
 }
 
 async function handleUpdateSubmit() {
-    setThinking(true);
+    setThinking(true, '📋 Preparing update form...');
     const updateData = {
         sessionId: sessionData.sessionId, 
         email: sessionData.email, // Added
@@ -685,13 +909,17 @@ async function handleUpdateSubmit() {
     }
     addMessageToLog('Got it. Submitting final update...', 'bot');
     try {
+        setThinking(true, '📝 Filling update form...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setThinking(true, '💾 Submitting contact update...');
         const result = await callAutomation('update', updateData);
+        setThinking(false);
         showResult(result.data, 'update');
     } catch (error) {
+         setThinking(false);
          addMessageToLog(`❌ **Something went wrong:** ${error.message}<br><br>Let's start over. How can I help?`, 'error');
     } finally {
         resetChat();
-        setThinking(false);
     }
 }
 
@@ -1228,17 +1456,23 @@ function resetChat() {
     sessionData = {};
 }
 
-function addMessageToLog(message, sender) {
+function addMessageToLog(message, sender, options = {}) {
+    const { persist = true } = options;
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message ${sender}`;
     msgDiv.innerHTML = message;
     chatLog.appendChild(msgDiv);
     chatLog.scrollTop = chatLog.scrollHeight;
+
+    if (persist) {
+        saveMessageToActiveSession(sender, message);
+    }
 }
 
-function setThinking(isThinking) {
+function setThinking(isThinking, statusMessage = null) {
     if (isThinking) {
-        statusBar.innerHTML = 'Bot is thinking<span class="typing-indicator"><span></span><span></span><span></span></span>';
+        const message = statusMessage || 'Bot is thinking';
+        statusBar.innerHTML = `${message}<span class="typing-indicator"><span></span><span></span><span></span></span>`;
         inputEl.disabled = true;
         chatForm.querySelector('button').disabled = true;
     } else {
