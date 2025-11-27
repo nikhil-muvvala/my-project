@@ -113,7 +113,7 @@ async function updateContacts(data) {
             const isSearchCardVisible = await page.isVisible('#searchCard');
             if (!isSearchCardVisible) {
                 await page.click('a[onclick*="showSection(\'home\')"]');
-                await page.waitForSelector('#searchCard', { state: 'visible', timeout: 5000 });
+                await page.waitForSelector('#searchCard', { state: 'visible', timeout: 8000 });
                 await page.fill('#regNumber', regNo);
                 await page.selectOption('#stateSelect', state);
             }
@@ -124,16 +124,28 @@ async function updateContacts(data) {
             }, searchCaptcha);
 
             await page.click('button[type="submit"]');
-            await page.waitForSelector('#resultCard', { state: 'visible', timeout: 15000 });
+            await page.waitForSelector('#resultCard', { state: 'visible', timeout: 20000 });
             console.log('✅ Vehicle search successful.');
 
-            await page.evaluate(() => {
-                document.querySelector('button[onclick="showUpdateDetailsModal()"]').scrollIntoView();
-            });
-
-            await page.click('button[onclick="showUpdateDetailsModal()"]');
-            await page.waitForSelector('#updateDetailsModal.show', { timeout: 5000 });
-            console.log('✅ Update Details modal opened.');
+            // Wait a bit for the update button to be ready
+            await page.waitForTimeout(1000);
+            
+            // Try to find and click the update button
+            try {
+                const updateButton = await page.$('button[onclick="showUpdateDetailsModal()"]');
+                if (updateButton) {
+                    await updateButton.scrollIntoViewIfNeeded();
+                    await page.waitForTimeout(500);
+                    await updateButton.click();
+                } else {
+                    // Try alternative selector
+                    await page.click('button:has-text("Update"), button[onclick*="Update"]');
+                }
+                await page.waitForSelector('#updateDetailsModal.show', { timeout: 8000 });
+                console.log('✅ Update Details modal opened.');
+            } catch (e) {
+                throw new Error('Could not open update modal. Vehicle may not be owned by this account.');
+            }
 
             return {
                 success: true,
@@ -150,42 +162,76 @@ async function updateContacts(data) {
             if (!session) throw new Error('Session expired.');
             const { browser, page, email } = session; 
 
+            // Ensure modal is still open
+            const isModalOpen = await page.isVisible('#updateDetailsModal.show');
+            if (!isModalOpen) {
+                throw new Error('Update modal closed unexpectedly. Please try again.');
+            }
+
+            await page.waitForSelector('#addr_newAddress', { state: 'visible', timeout: 5000 });
             await page.fill('#addr_newAddress', updateDetails.newAddress);
             await page.fill('#addr_newMobile', updateDetails.newMobile);
             await page.fill('#addr_newEmail', email); 
             console.log(`✅ Filled form with new details and auto-filled email: ${email}`);
             
+            // Wait a bit before checking checkboxes
+            await page.waitForTimeout(300);
+            
             const checkboxes = await page.$$('#updateDetailsModal input[type="checkbox"]');
             for (const checkbox of checkboxes) {
-                await checkbox.check();
+                try {
+                    await checkbox.check();
+                } catch (e) {
+                    console.log('⚠️ Could not check one checkbox, continuing...');
+                }
             }
             console.log('✅ Checked all document checkboxes.');
 
             await page.click('#updateDetailsForm button[type="submit"]');
-            await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
-            console.log('✅ Receipt modal opened');
+            console.log('✅ Submit button clicked, waiting for receipt...');
             
-            const receiptText = await page.textContent('#receiptContentOutput');
-            const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
-            
-            const result = {
-                applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
-                vehicleRegNo: regNo,
-                newAddress: updateDetails.newAddress,
-                newMobile: updateDetails.newMobile,
-                status: 'COMPLETED'
-            };
-            
-            console.log('✅ Update completed:', result.applicationId);
-            
-            removeActiveSession(sessionId);
-            
-            return {
-                success: true,
-                step: 'completed',
-                message: 'Contact details updated successfully',
-                data: result
-            };
+            // Wait for receipt modal with better error handling
+            try {
+                await page.waitForSelector('#receiptModal.show', { timeout: 25000 });
+                console.log('✅ Receipt modal opened');
+                
+                // Wait a bit for content to load
+                await page.waitForTimeout(1000);
+                
+                const receiptText = await page.textContent('#receiptContentOutput');
+                if (!receiptText) {
+                    throw new Error('Receipt content not found');
+                }
+                
+                const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
+                
+                const result = {
+                    applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
+                    vehicleRegNo: regNo,
+                    newAddress: updateDetails.newAddress,
+                    newMobile: updateDetails.newMobile,
+                    status: 'COMPLETED'
+                };
+                
+                console.log('✅ Update completed:', result.applicationId);
+                
+                removeActiveSession(sessionId);
+                
+                return {
+                    success: true,
+                    step: 'completed',
+                    message: 'Contact details updated successfully',
+                    data: result
+                };
+            } catch (waitError) {
+                // Check if there's an error message on the page
+                const errorElement = await page.$('.alert-danger, .error-message, #updateDetailsModal .alert');
+                if (errorElement) {
+                    const errorText = await errorElement.textContent();
+                    throw new Error(`Update failed: ${errorText.trim() || 'Unknown error'}`);
+                }
+                throw new Error(`Failed to get receipt: ${waitError.message}`);
+            }
         }
         
         throw new Error('Invalid request state for update.');
