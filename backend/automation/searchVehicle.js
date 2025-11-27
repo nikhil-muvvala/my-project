@@ -142,10 +142,12 @@ async function searchVehicle(data) {
                 fs.unlinkSync(screenshotPath);
             }
             
+            const formattedData = formatVehicleSummary(vehicleData);
+
             return {
                 success: true,
                 needsCaptcha: false,
-                data: vehicleData,
+                data: formattedData,
                 message: 'Vehicle details fetched successfully'
             };
         }
@@ -173,6 +175,51 @@ async function searchVehicle(data) {
             data: null
         };
     }
+}
+
+function formatVehicleSummary(vehicleData) {
+    const safe = (value, fallback = '-') => value && value !== '-' ? value : fallback;
+
+    return {
+        registrationInfo: {
+            registrationNumber: safe(vehicleData.regNo),
+            registrationDate: safe(vehicleData.regDate),
+            registeringAuthority: safe(vehicleData.rto),
+            stateCode: safe(vehicleData.rto?.split(' ')[0]),
+            vehicleClass: safe(vehicleData.class),
+            makerModel: safe(vehicleData.model),
+            manufactureYear: safe(vehicleData.year),
+            fuelType: safe(vehicleData.fuel),
+            color: safe(vehicleData.color)
+        },
+        vehicleSpecs: {
+            engineNumber: safe(vehicleData.engine),
+            chassisNumber: safe(vehicleData.chassis),
+            seatingCapacity: safe(vehicleData.seating),
+            financer: safe(vehicleData.financer)
+        },
+        ownerInfo: {
+            ownerName: safe(vehicleData.ownerName),
+            guardianName: safe(vehicleData.fatherName),
+            contactNumber: safe(vehicleData.mobile),
+            email: safe(vehicleData.email),
+            currentAddress: safe(vehicleData.address),
+            permanentAddress: safe(vehicleData.permAddress)
+        },
+        complianceStatus: {
+            insuranceStatus: safe(vehicleData.insStatus),
+            insuranceValidFrom: safe(vehicleData.insFrom),
+            insuranceValidTill: safe(vehicleData.insUpto),
+            insuranceCompany: safe(vehicleData.insCompany),
+            policyNumber: safe(vehicleData.policyNo),
+            fitnessValidTill: safe(vehicleData.fitnessUpto),
+            fitnessStatus: safe(vehicleData.fitnessStatus),
+            pucStatus: safe(vehicleData.pucStatus),
+            pucValidTill: safe(vehicleData.pucUpto),
+            taxPaidUpto: safe(vehicleData.taxUpto)
+        },
+        rawData: vehicleData
+    };
 }
 
 function cleanupOldSessions() {
