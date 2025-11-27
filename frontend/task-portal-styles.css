@@ -18,18 +18,17 @@
     --secondary: #8b5cf6;
     --accent: #ec4899;
     
-    /* Neutral Colors */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
+    /* Light Theme Tokens */
+    --page-gradient: radial-gradient(circle at top, #f8fafc 0%, #e2e8f0 45%, #dfe6ff 100%);
     --bg-card: #ffffff;
     --bg-light: #f8fafc;
-    
-    /* Text Colors */
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
+    --bg-muted: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
     --text-light: #94a3b8;
     --text-white: #ffffff;
+    --border-soft: rgba(148, 163, 184, 0.4);
+    --result-gradient: linear-gradient(135deg, #f0fdf4, #dcfce7);
     
     /* Status Colors */
     --success: #10b981;
@@ -59,31 +58,52 @@
     --spacing-xl: 32px;
 }
 
+[data-theme="dark"] {
+    --page-gradient: radial-gradient(circle at top, #0f172a 0%, #020617 55%, #000 100%);
+    --bg-card: #0f172a;
+    --bg-light: #1e293b;
+    --bg-muted: #1e1b4b;
+    --text-primary: #e2e8f0;
+    --text-secondary: #cbd5f5;
+    --text-light: #94a3b8;
+    --border-soft: rgba(51, 65, 85, 0.8);
+    --result-gradient: linear-gradient(135deg, #1d2b45, #243b55);
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.4);
+    --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.6);
+    --shadow-lg: 0 12px 24px -6px rgba(2, 6, 23, 0.8);
+    --shadow-xl: 0 20px 30px -12px rgba(2, 6, 23, 0.8);
+    --shadow-2xl: 0 30px 50px -20px rgba(2, 6, 23, 0.8);
+}
+
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    background-attachment: fixed;
+    background: var(--page-gradient);
     min-height: 100vh;
-    padding: var(--spacing-md);
+    padding: 0;
+    margin: 0;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     color: var(--text-primary);
     line-height: 1.6;
+    overflow: hidden;
+    transition: background 0.4s ease, color 0.3s ease;
 }
 
 .container {
     background: var(--bg-card);
-    border-radius: var(--radius-xl);
+    border-radius: 0;
     box-shadow: var(--shadow-2xl);
     width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: var(--spacing-xl);
+    height: 100vh;
+    margin: 0;
+    padding: clamp(16px, 3vw, 48px);
     display: flex;
     flex-direction: column;
-    height: 90vh;
-    max-height: 900px;
     overflow: hidden;
     position: relative;
 }
@@ -96,7 +116,7 @@ body {
     right: 0;
     height: 4px;
     background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-radius: 0;
 }
 
 /* ============================================
@@ -109,7 +129,7 @@ body {
     align-items: center;
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
-    border-bottom: 2px solid var(--bg-light);
+    border-bottom: 2px solid var(--border-soft);
 }
 
 .portal-header h1 {
@@ -164,6 +184,20 @@ body {
     transform: translateY(0);
 }
 
+#themeToggleBtn {
+    min-width: 110px;
+}
+
+#themeToggleBtn .theme-icon {
+    font-size: 18px;
+}
+
+#themeToggleBtn .theme-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* ============================================
    CHAT LOG SECTION
    ============================================ */
@@ -173,7 +207,7 @@ body {
     overflow-y: auto;
     padding: var(--spacing-lg);
     background: var(--bg-light);
-    border: 2px solid var(--bg-light);
+    border: 2px solid var(--border-soft);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-md);
     scroll-behavior: smooth;
@@ -233,7 +267,7 @@ body {
     color: var(--text-primary);
     margin-right: auto;
     border-bottom-left-radius: var(--radius-sm);
-    border: 1px solid var(--bg-light);
+    border: 1px solid var(--border-soft);
 }
 
 .chat-message.error {
@@ -267,7 +301,7 @@ body {
     background: var(--bg-card);
     padding: var(--spacing-sm);
     border-radius: var(--radius-full);
-    border: 2px solid var(--bg-light);
+    border: 2px solid var(--border-soft);
     box-shadow: var(--shadow-md);
     transition: all 0.3s;
 }
@@ -384,7 +418,7 @@ body {
    ============================================ */
 
 .result-box {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    background: var(--result-gradient);
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     margin-top: var(--spacing-md);
@@ -444,6 +478,27 @@ body {
 
 .result-table tr:last-child td {
     border-bottom: none;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.result-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--bg-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.result-section h5 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: 15px;
+    letter-spacing: 0.2px;
 }
 
 .result-table td:first-child {
