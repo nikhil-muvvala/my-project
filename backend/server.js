@@ -99,7 +99,14 @@ app.post('/api/register', async (req, res) => {
     try {
         const { name, dob, gender, phone, address } = req.body;
 
-        const existingUser = await EidUser.findOne({ phone: phone });
+        // Normalize phone number: remove all non-digit characters
+        const normalizedPhone = phone ? phone.replace(/\D/g, '') : '';
+        
+        if (!normalizedPhone || normalizedPhone.length < 10) {
+            return res.status(400).json({ message: 'Invalid phone number format.' });
+        }
+
+        const existingUser = await EidUser.findOne({ phone: normalizedPhone });
         if (existingUser) {
             console.log('Registration failed: Phone number already in use.');
             return res.status(409).json({ message: 'User already registered with this phone number.' });
@@ -120,7 +127,7 @@ app.post('/api/register', async (req, res) => {
             name,
             dob,
             gender,
-            phone,
+            phone: normalizedPhone, // Store normalized phone number
             address,
             issued: new Date()
         });
@@ -188,11 +195,18 @@ app.put('/api/update', async (req, res) => {
         if (address) updates.address = address;
 
         if (phone && phone !== user.phone) {
-            const existingUser = await EidUser.findOne({ phone: phone });
+            // Normalize phone number: remove all non-digit characters
+            const normalizedPhone = phone.replace(/\D/g, '');
+            
+            if (!normalizedPhone || normalizedPhone.length < 10) {
+                return res.status(400).json({ message: 'Invalid phone number format.' });
+            }
+            
+            const existingUser = await EidUser.findOne({ phone: normalizedPhone });
             if (existingUser) {
                 return res.status(409).json({ message: 'This phone number is already registered to another user.' });
             }
-            updates.phone = phone;
+            updates.phone = normalizedPhone;
         }
 
         if (Object.keys(updates).length === 0) {
