@@ -15,6 +15,9 @@ const statusBar = document.getElementById('status-bar');
 // --- NEW: Add listeners for new buttons ---
 const editProfileBtn = document.getElementById('editProfileBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeIcon = themeToggleBtn?.querySelector('.theme-icon');
+const themeLabel = themeToggleBtn?.querySelector('.theme-label');
 
 // --- REGEX HELPERS ---
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,6 +50,30 @@ const stateNameMap = indianStates.reduce((acc, state) => {
     acc[state.code.toLowerCase()] = state.code;
     return acc;
 }, {});
+
+// --- THEME HANDLING ---
+const applyTheme = (theme) => {
+    const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', normalizedTheme);
+    localStorage.setItem('portalTheme', normalizedTheme);
+
+    if (themeIcon && themeLabel) {
+        if (normalizedTheme === 'dark') {
+            themeIcon.textContent = '🌙';
+            themeLabel.textContent = 'Dark';
+        } else {
+            themeIcon.textContent = '🌞';
+            themeLabel.textContent = 'Light';
+        }
+    }
+};
+
+applyTheme(localStorage.getItem('portalTheme') || 'light');
+
+themeToggleBtn?.addEventListener('click', () => {
+    const nextTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+});
 
 // --- EVENT LISTENER ---
 chatForm.addEventListener('submit', handleUserInput);
@@ -1227,8 +1254,66 @@ function showResult(data, taskType) {
     let title = '✅ Task Completed Successfully!';
 
     if (taskType === 'search') {
-        title = '✅ Vehicle Details Retrieved';
-         content = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        title = '✅ Vehicle Snapshot Ready';
+        const registrationInfo = data.registrationInfo || {};
+        const vehicleSpecs = data.vehicleSpecs || {};
+        const ownerInfo = data.ownerInfo || {};
+        const complianceStatus = data.complianceStatus || {};
+
+        const buildRows = (rows) => rows
+            .filter(([, value]) => value && value !== '-')
+            .map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`)
+            .join('') || '<tr><td colspan="2">No data available</td></tr>';
+
+        const section = (heading, rows) => `
+            <div class="result-section">
+                <h5>${heading}</h5>
+                <table class="result-table">
+                    ${buildRows(rows)}
+                </table>
+            </div>
+        `;
+
+        content = `
+            <div class="result-grid">
+                ${section('Registration Details', [
+                    ['Registration Number', registrationInfo.registrationNumber],
+                    ['Registration Date', registrationInfo.registrationDate],
+                    ['Registering Authority', registrationInfo.registeringAuthority],
+                    ['Vehicle Class', registrationInfo.vehicleClass],
+                    ['Maker / Model', registrationInfo.makerModel],
+                    ['Manufacture Year', registrationInfo.manufactureYear],
+                    ['Fuel Type', registrationInfo.fuelType],
+                    ['Color', registrationInfo.color]
+                ])}
+                ${section('Owner Details', [
+                    ['Owner Name', ownerInfo.ownerName],
+                    ['Parent / Guardian', ownerInfo.guardianName],
+                    ['Contact Number', ownerInfo.contactNumber],
+                    ['Email', ownerInfo.email],
+                    ['Current Address', ownerInfo.currentAddress],
+                    ['Permanent Address', ownerInfo.permanentAddress]
+                ])}
+                ${section('Vehicle Specs', [
+                    ['Engine Number', vehicleSpecs.engineNumber],
+                    ['Chassis Number', vehicleSpecs.chassisNumber],
+                    ['Seating Capacity', vehicleSpecs.seatingCapacity],
+                    ['Financier', vehicleSpecs.financer]
+                ])}
+                ${section('Compliance & Validity', [
+                    ['Insurance Status', complianceStatus.insuranceStatus],
+                    ['Policy Number', complianceStatus.policyNumber],
+                    ['Insurance Company', complianceStatus.insuranceCompany],
+                    ['Insurance Valid From', complianceStatus.insuranceValidFrom],
+                    ['Insurance Valid Till', complianceStatus.insuranceValidTill],
+                    ['Fitness Status', complianceStatus.fitnessStatus],
+                    ['Fitness Valid Till', complianceStatus.fitnessValidTill],
+                    ['PUC Status', complianceStatus.pucStatus],
+                    ['PUC Valid Till', complianceStatus.pucValidTill],
+                    ['Tax Paid Upto', complianceStatus.taxPaidUpto]
+                ])}
+            </div>
+        `;
     } else if (taskType === 'register') {
         title = '✅ Vehicle Registered Successfully!';
         content = `
