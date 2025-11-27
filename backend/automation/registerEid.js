@@ -156,6 +156,9 @@ async function registerEid(data) {
             const beforeFillScreenshot = await takeScreenshot(page, currentSessionId, 'before_fill');
             console.log('📸 Screenshot saved:', beforeFillScreenshot);
             
+            // Normalize phone number: remove all non-digit characters
+            const normalizedPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
+            
             // Fill the form fields (using type for better simulation, like Puppeteer)
             await page.type('#reg-name', formData.name, { delay: 50 });
             
@@ -165,7 +168,7 @@ async function registerEid(data) {
             }, formData.dob);
             
             await page.selectOption('#reg-gender', formData.gender);
-            await page.type('#reg-phone', formData.phone, { delay: 50 });
+            await page.type('#reg-phone', normalizedPhone, { delay: 50 });
             await page.type('#reg-address', formData.address, { delay: 50 });
             
             console.log('✅ Form filled with user details.');
