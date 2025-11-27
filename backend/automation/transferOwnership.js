@@ -115,7 +115,7 @@ async function transferOwnership(data) {
             if (!isSearchCardVisible) {
                 console.log('... Search card not visible, re-navigating to Home');
                 await page.click('a[onclick*="showSection(\'home\')"]');
-                await page.waitForSelector('#searchCard', { state: 'visible', timeout: 5000 });
+                await page.waitForSelector('#searchCard', { state: 'visible', timeout: 8000 });
                 await page.fill('#regNumber', regNo);
                 await page.selectOption('#stateSelect', state);
             }
@@ -127,16 +127,28 @@ async function transferOwnership(data) {
             }, searchCaptcha);
 
             await page.click('button[type="submit"]');
-            await page.waitForSelector('#resultCard', { state: 'visible', timeout: 15000 });
+            await page.waitForSelector('#resultCard', { state: 'visible', timeout: 20000 });
             console.log('✅ Vehicle search successful.');
 
-            await page.evaluate(() => {
-                document.querySelector('button[onclick="showTransferModal()"]').scrollIntoView();
-            });
-
-            await page.click('button[onclick="showTransferModal()"]');
-            await page.waitForSelector('#transferModal.show', { timeout: 5000 });
-            console.log('✅ Transfer modal opened.');
+            // Wait a bit for the transfer button to be ready
+            await page.waitForTimeout(1000);
+            
+            // Try to find and click the transfer button
+            try {
+                const transferButton = await page.$('button[onclick="showTransferModal()"]');
+                if (transferButton) {
+                    await transferButton.scrollIntoViewIfNeeded();
+                    await page.waitForTimeout(500);
+                    await transferButton.click();
+                } else {
+                    // Try alternative selector
+                    await page.click('button:has-text("Transfer"), button[onclick*="Transfer"]');
+                }
+                await page.waitForSelector('#transferModal.show', { timeout: 8000 });
+                console.log('✅ Transfer modal opened.');
+            } catch (e) {
+                throw new Error('Could not open transfer modal. Vehicle may not be owned by this account.');
+            }
 
             return {
                 success: true,
@@ -153,6 +165,13 @@ async function transferOwnership(data) {
             if (!session) throw new Error('Session expired.');
             const { browser, page } = session;
 
+            // Ensure modal is still open
+            const isModalOpen = await page.isVisible('#transferModal.show');
+            if (!isModalOpen) {
+                throw new Error('Transfer modal closed unexpectedly. Please try again.');
+            }
+
+            await page.waitForSelector('#trans_newOwner', { state: 'visible', timeout: 5000 });
             await page.fill('#trans_newOwner', transferDetails.newOwnerName);
             await page.fill('#trans_newFather', transferDetails.newOwnerFather);
             await page.fill('#trans_newMobile', transferDetails.newOwnerMobile);
@@ -161,36 +180,63 @@ async function transferOwnership(data) {
             await page.fill('#trans_amount', transferDetails.saleAmount);
             await page.fill('#trans_date', new Date().toISOString().split('T')[0]);
             
+            // Wait a bit before checking checkboxes
+            await page.waitForTimeout(300);
+            
             const checkboxes = await page.$$('#transferModal input[type="checkbox"]');
             for (const checkbox of checkboxes) {
-                await checkbox.check();
+                try {
+                    await checkbox.check();
+                } catch (e) {
+                    console.log('⚠️ Could not check one checkbox, continuing...');
+                }
             }
             console.log('✅ Filled transfer form and checked documents.');
 
             await page.click('#transferForm button[type="submit"]');
-            await page.waitForSelector('#receiptModal.show', { timeout: 20000 });
-            console.log('✅ Receipt modal opened');
+            console.log('✅ Submit button clicked, waiting for receipt...');
             
-            const receiptText = await page.textContent('#receiptContentOutput');
-            const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
-            
-            const result = {
-                applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
-                vehicleRegNo: regNo,
-                newOwner: transferDetails.newOwnerName,
-                status: 'COMPLETED'
-            };
-            
-            console.log('✅ Transfer completed:', result.applicationId);
-            
-            removeActiveSession(sessionId);
-            
-            return {
-                success: true,
-                step: 'completed',
-                message: 'Ownership transferred successfully',
-                data: result
-            };
+            // Wait for receipt modal with better error handling
+            try {
+                await page.waitForSelector('#receiptModal.show', { timeout: 25000 });
+                console.log('✅ Receipt modal opened');
+                
+                // Wait a bit for content to load
+                await page.waitForTimeout(1000);
+                
+                const receiptText = await page.textContent('#receiptContentOutput');
+                if (!receiptText) {
+                    throw new Error('Receipt content not found');
+                }
+                
+                const appIdMatch = receiptText.match(/Application ID: ([A-Z0-9]+)/);
+                
+                const result = {
+                    applicationId: appIdMatch ? appIdMatch[1] : 'N/A',
+                    vehicleRegNo: regNo,
+                    newOwner: transferDetails.newOwnerName,
+                    status: 'COMPLETED'
+                };
+                
+                console.log('✅ Transfer completed:', result.applicationId);
+                
+                removeActiveSession(sessionId);
+                
+                return {
+                    success: true,
+                    step: 'completed',
+                    message: 'Ownership transferred successfully',
+                    data: result
+                };
+            } catch (waitError) {
+                // Check if there's an error message on the page
+                const errorElement = await page.$('.alert-danger, .error-message, #transferModal .alert');
+                if (errorElement) {
+                    const errorText = await errorElement.textContent();
+                    throw new Error(`Transfer failed: ${errorText.trim() || 'Unknown error'}`);
+                }
+                throw new Error(`Failed to get receipt: ${waitError.message}`);
+            }
         }
         
         throw new Error('Invalid request state for transfer.');
